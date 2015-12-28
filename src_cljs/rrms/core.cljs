@@ -1,2 +1,1 @@
-(ns rrms.core
-  (:gen-class))
+(ns rrms.core)
