@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS  documents
   date TIMESTAMP WITH TIME ZONE,
   location text,
   barcode text,
-  exists text,
+  isactive text,
   createdatetime TIMESTAMP WITH TIME ZONE,
   updateddatetime TIMESTAMP WITH TIME ZONE,
-  CONSTRAINT "Documents_pkey" PRIMARY KEY (id)
+  CONSTRAINT "documents_pkey" PRIMARY KEY (id)
 );
