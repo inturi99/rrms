@@ -18,8 +18,19 @@
                                           (rr/response  (db/get-documents-by-title
                                                          {:title title}))
                                           content-type))
+  (POST "/documents/add" {body :body}
+        (let [{dn "documentname" t "title"
+               en "employeename" lc "location"
+               br "barcode" ia "isactive"}
+              body]
+          (db/insert-documents {:documentname dn
+                                :title t
+                                :employeename en
+                                :location lc
+                                :barcode br
+                                :isactive ia})
+          (rr/content-type (rr/response "") content-type)))
   (route/not-found "<h1>Page not found</h1>"))
-
 
 (def app
   (-> app-routes
