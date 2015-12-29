@@ -8,28 +8,50 @@
             [ring.middleware.cors :refer [wrap-cors]]
             [rrms.db.core :as db]
             [bouncer.core :as b]
-            [bouncer.validators :as v])
+            [bouncer.validators :as v]
+            [clj-time.core :as t])
   (:gen-class))
 
 (def content-type  "application/json; charset=utf-8")
 
+(defmulti parse-int type)
+(defmethod parse-int java.lang.Integer [n] n)
+(defmethod parse-int java.lang.String [s] (Integer/parseInt s))
+
 (defroutes app-routes
-  (GET "/documents/title/:title" [title] (rr/content-type
-                                          (rr/response  (db/get-documents-by-title
-                                                         {:title title}))
-                                          content-type))
+
+  (GET "/documents/title/:title" [title]
+       (rr/content-type
+        (rr/response  (db/get-documents-by-title
+                       {:title title}))
+        content-type))
+
+  (GET "/documents/id/:id" [id]
+       (rr/content-type
+        (rr/response (db/get-documents-by-id
+                      {:id (parse-int id)}))
+        content-type))
+
   (POST "/documents/add" {body :body}
-        (let [{dn "documentname" t "title"
-               en "employeename" lc "location"
+        (let [{dn "documentname" title "title"
+               en "employeename" d "date"
+               lc "location"
                br "barcode" ia "isactive"}
               body]
           (db/insert-documents {:documentname dn
-                                :title t
+                                :title title
                                 :employeename en
+                                :date d
                                 :location lc
                                 :barcode br
                                 :isactive ia})
           (rr/content-type (rr/response "") content-type)))
+
+  (GET "/documents/delete/:id" [id]
+       (rr/content-type
+        (rr/response (db/delete-documents-by-id
+                      {:id (parse-int id)}))
+        content-type))
   (route/not-found "<h1>Page not found</h1>"))
 
 (def app
