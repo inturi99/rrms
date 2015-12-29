@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS  documents
   documentname text,
   title text,
   employeename text,
-  date TIMESTAMP WITH TIME ZONE,
+  date date,
   location text,
   barcode text,
   isactive text,
