@@ -47,6 +47,21 @@
                                 :isactive ia})
           (rr/content-type (rr/response "") content-type)))
 
+  (POST "/documents/update"  {body :body}
+        (let [{id "id"
+               dn "documentname" title "title"
+               en "employeename" d "date"
+               lc "location" ia "isactive"}
+              body]
+          (db/update-documents {:id id
+                                :documentname dn
+                                :title title
+                                :employeename en
+                                :date d
+                                :location lc
+                                :isactive ia})
+          (rr/content-type (rr/response "") content-type)))
+
   (GET "/documents/delete/:id" [id]
        (rr/content-type
         (rr/response (db/delete-documents-by-id
