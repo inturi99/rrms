@@ -3,6 +3,9 @@
 SELECT * from documents
 WHERE title = :title
 
+--name: get-all-documents
+SELECT documentname,title,employeename,date,location,isactive from documents ORDER BY createdatetime DESC
+
 --name: get-documents-by-id
 SELECT documentname,title,employeename,location,barcode,isactive from documents WHERE id = :id
 
