@@ -26,6 +26,11 @@
                        {:title title}))
         content-type))
 
+  (GET "/documents/all" []
+       (rr/content-type
+        (rr/response (db/get-all-documents))
+        content-type))
+
   (GET "/documents/id/:id" [id]
        (rr/content-type
         (rr/response (db/get-documents-by-id
