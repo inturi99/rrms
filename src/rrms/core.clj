@@ -9,8 +9,15 @@
             [rrms.db.core :as db]
             [bouncer.core :as b]
             [bouncer.validators :as v]
-            [clj-time.core :as t])
+            [clj-time.core :as t]
+            [compojure.response :refer [render]]
+            [clojure.java.io :as io])
   (:gen-class))
+
+(defn home
+  ""
+  [req]
+  (render (io/resource "index.html") req))
 
 (def content-type  "application/json; charset=utf-8")
 
@@ -19,18 +26,18 @@
 (defmethod parse-int java.lang.String [s] (Integer/parseInt s))
 
 (defroutes app-routes
-
-  (GET "/documents/title/:title" [title]
-       (rr/content-type
-        (rr/response  (db/get-documents-by-title
-                       {:title title}))
-        content-type))
+  (GET "/" [] home)
 
   (GET "/documents/all" []
        (rr/content-type
         (rr/response (db/get-all-documents))
         content-type))
 
+  (GET "/documents/title/:title" [title]
+       (rr/content-type
+        (rr/response  (db/get-documents-by-title
+                       {:title title}))
+        content-type))
   (GET "/documents/id/:id" [id]
        (rr/content-type
         (rr/response (db/get-documents-by-id
@@ -40,38 +47,42 @@
   (POST "/documents/add" {body :body}
         (let [{dn "documentname" title "title"
                en "employeename" d "date"
-               lc "location"
-               br "barcode" ia "isactive"}
+               lc "location" br "barcode" }
               body]
-          (db/insert-documents {:documentname dn
-                                :title title
-                                :employeename en
-                                :date d
-                                :location lc
-                                :barcode br
-                                :isactive ia})
-          (rr/content-type (rr/response "") content-type)))
+          (rr/content-type
+           (rr/response
+            (db/insert-documents {:documentname dn
+                                  :title title
+                                  :employeename en
+                                  :date (java.sql.Date/valueOf d)
+                                  :location lc
+                                  :barcode br}))
+           content-type)))
 
-  (POST "/documents/update"  {body :body}
+  (POST "/documents/update"
+        {body :body}
         (let [{id "id"
                dn "documentname" title "title"
                en "employeename" d "date"
-               lc "location" ia "isactive"}
+               lc "location" }
               body]
-          (db/update-documents {:id id
-                                :documentname dn
-                                :title title
-                                :employeename en
-                                :date d
-                                :location lc
-                                :isactive ia})
-          (rr/content-type (rr/response "") content-type)))
+          (rr/content-type
+           (rr/response
+            (db/update-documents {:id id
+                                  :documentname dn
+                                  :title title
+                                  :employeename en
+                                  :date d
+                                  :location lc}))
+           content-type)))
 
-  (GET "/documents/delete/:id" [id]
-       (rr/content-type
-        (rr/response (db/delete-documents-by-id
-                      {:id (parse-int id)}))
-        content-type))
+  (DELETE "/documents/delete/:id" [id]
+          (db/delete-documents-by-id
+           {:id (parse-int id)})
+          (rr/content-type
+           (rr/response (db/get-all-documents))
+           content-type))
+  (route/resources "/static")
   (route/not-found "<h1>Page not found</h1>"))
 
 (def app
