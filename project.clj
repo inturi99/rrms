@@ -48,5 +48,5 @@
                            :source-map true
                            :optimizations :none
                            :asset-path "/static/js/out"
-                           :main "rrms.core"
+                           :main "rrms.corecljs"
                            :pretty-print true}}]})
