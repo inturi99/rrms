@@ -68,11 +68,11 @@
               body]
           (rr/content-type
            (rr/response
-            (db/update-documents {:id id
+            (db/update-documents {:id  (parse-int id)
                                   :documentname dn
                                   :title title
                                   :employeename en
-                                  :date d
+                                  :date (java.sql.Date/valueOf d)
                                   :location lc}))
            content-type)))
 
