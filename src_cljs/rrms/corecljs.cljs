@@ -62,14 +62,14 @@
 
 (defn document-update-template [id dmt]
   [:div.form-group {:id "update" :class "form-group"}
-   [:div [:input {:type "hidden" :value id :docid "docid"}]]
+   [:div [:input {:type "hidden" :value id :id "id"}]]
    [:div (input "Documentname" :text :upd_documentname (.-documentname dmt))]
    [:div (input "Title" :text :upd_title (.-title dmt))]
    [:div (input "EmployeeName" :text :upd_employeename (.-employeename dmt))]
    [:div (input "Date":text :upd_date (.-date dmt))]
    [:div (input "Location":text :upd_location (.-location dmt))]
    [:input {:type "button" :value "Save"
-            :class "btn btn-primary" :on-click update}]])
+            :class "btn btn-primary" :on-click docupdate}]])
 
 
 
@@ -86,7 +86,7 @@
 
 (defn get-update-documents-formdata []
   {
-   :id (getinputvalue "docid")
+   :id (getinputvalue "id")
    :documentname (getinputvalue "upd_documentname")
    :title (getinputvalue "upd_title")
    :employeename (getinputvalue "upd_employeename")
@@ -103,7 +103,7 @@
   (.assign js/location (str "#/documents/update/" id)))
 
 
-(defn update [event]
+(defn docupdate [event]
   (let [onres (fn[data]
                 (.assign js/location "/"))]
     (http-post "http://localhost:8193/documents/update"
