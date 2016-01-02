@@ -19,7 +19,9 @@
                  [yesql "0.5.1"]
                  [com.cognitect/transit-cljs "0.8.225"]
                  [ring-cors "0.1.7"]
-                 [bouncer "0.3.3"]]
+                 [bouncer "0.3.3"]
+                 [clj-time "0.11.0"]
+                 ]
 
   :plugins [[lein-ring "0.8.13"]
             [migratus-lein "0.1.7"]
