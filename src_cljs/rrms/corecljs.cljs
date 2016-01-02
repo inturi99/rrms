@@ -5,7 +5,9 @@
             [goog.net.XhrIo :as xhr]
             [reagent.core :as r]
             [cognitect.transit :as t]
-            [goog.structs :as structs])
+            [goog.structs :as structs]
+            [cljs-time.format :as f]
+            [cljs-time.core :as tt])
   (:import goog.History)
   )
 
@@ -16,7 +18,6 @@
 (defn url-format [url title]
   [:a {:href url :class "btn btn-primary"} title])
 
-
 (def w (t/writer :json-verbose))
 
 (defn getdata [res]
@@ -24,6 +25,13 @@
 
 (defn http-get [url callback]
   (xhr/send url callback))
+
+
+(defn to-string
+  [obj]
+  (if-let [dt (to-date-time obj)]
+    (time-fmt/unparse (:date-time time-fmt/formatters) dt)))
+
 
 (defn http-post [url callback data]
   (xhr/send url callback "POST" data  (structs/Map. (clj->js {:Content-Type "application/json"}))))
@@ -54,7 +62,7 @@
    [:div#dn (input "Documentname" :text :documentname)]
    [:div#tl (input "Title" :text :title)]
    [:div#empn (input "EmployeeName" :text :employeename)]
-   [:div#dt (input "Date":text :date)]
+   [:div#dt (input "Date":Date :date)]
    [:div#loc (input "Location":text :location)]
    [:input {:type "button" :value "Save"
             :class "btn btn-primary" :on-click save}]
@@ -66,7 +74,7 @@
    [:div (input "Documentname" :text :upd_documentname (.-documentname dmt))]
    [:div (input "Title" :text :upd_title (.-title dmt))]
    [:div (input "EmployeeName" :text :upd_employeename (.-employeename dmt))]
-   [:div (input "Date":text :upd_date (.-date dmt))]
+   [:div (input "Date":Date :upd_date  (f/unparse (f/formatter "yyyy-MM-dd")(f/parse (.-date dmt))))]
    [:div (input "Location":text :upd_location (.-location dmt))]
    [:input {:type "button" :value "Save"
             :class "btn btn-primary" :on-click docupdate}]])
@@ -151,6 +159,7 @@
                            [:td (.-documentname dn)]
                            [:td (.-title dn)]
                            [:td (.-employeename dn)]
+                           [:td  (f/unparse (f/formatter "MM/dd/yyyy")(f/parse (.-date dn)))]
                            [:td (.-date dn)]
                            [:td (.-location dn)]
                            [:td [:input {:type "button" :on-click #(click-update(.-id dn))
@@ -159,7 +168,7 @@
                                          :value "Delete"}]]
                            ])]]]
    [:div.padding]
-   [:div.page-footer [:h4 "Copyright ©2015 A TechnoIdentity Creations — All Rights Reserved."]]
+   [:div.page-footer [:h4 "Copyright All Rights Reserved © 2016 TechnoIdentity Solutions Pvt.Ltd"]]
    ])
 
 
