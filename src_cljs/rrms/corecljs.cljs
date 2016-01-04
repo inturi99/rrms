@@ -27,17 +27,13 @@
   (xhr/send url callback))
 
 
-(defn to-string
-  [obj]
-  (if-let [dt (to-date-time obj)]
-    (time-fmt/unparse (:date-time time-fmt/formatters) dt)))
-
-
 (defn http-post [url callback data]
   (xhr/send url callback "POST" data  (structs/Map. (clj->js {:Content-Type "application/json"}))))
 
 (defn http-delete [url callback data]
   (xhr/send url callback "DELETE" data  (structs/Map. (clj->js {:Content-Type "application/json"}))))
+
+(declare render-documents)
 
 (defn search [event]
   (let [stext (.-value (.getElementById js/document "sText"))
@@ -54,12 +50,32 @@
    [:label
     [:input {:field :radio :name name :value value}]
     label]])
-(defn input [label type id value]
-  (row label [:input.form-control {:type type :id id :defaultValue value}]))
+(defn input
+  ([label type id value]
+   (row label [:input.form-control {:type type :id id :defaultValue value}]))
+  ([label type id]
+   (input label type id "")))
+
+(defn getinputvalue[id]
+  (.-value (.getElementById js/document id)))
+
+(defn get-documents-formdata []
+  {:documentname (getinputvalue "documentname")
+   :title (getinputvalue "title")
+   :employeename (getinputvalue "employeename")
+   :date (getinputvalue "date")
+   :location (getinputvalue "location")
+   })
+
+
+(defn save [event]
+  (let [onres (fn[data] (set! (.-location js/window) "http://localhost:8193"))]
+    (http-post "http://localhost:8193/documents/add"
+               onres  (JSON/stringify (clj->js (get-documents-formdata))))))
 
 (defn document-template []
   [:div {:id "add" :class "form-group"}
-   [:div#dn (input "Documentname" :text :documentname)]
+   [:div#dn (input "Documentname" :text :documentname )]
    [:div#tl (input "Title" :text :title)]
    [:div#empn (input "EmployeeName" :text :employeename)]
    [:div#dt (input "Date":Date :date)]
@@ -67,6 +83,29 @@
    [:input {:type "button" :value "Save"
             :class "btn btn-primary" :on-click save}]
    ])
+
+(defn get-update-documents-formdata []
+  {
+   :id (getinputvalue "id")
+   :documentname (getinputvalue "upd_documentname")
+   :title (getinputvalue "upd_title")
+   :employeename (getinputvalue "upd_employeename")
+   :date (getinputvalue "upd_date")
+   :location (getinputvalue "upd_location")
+   })
+
+
+
+(defn click-update[id]
+  (.assign js/location (str "#/documents/update/" id)))
+
+
+(defn docupdate [event]
+  (let [onres (fn[data]
+                (.assign js/location "/"))]
+    (http-post "http://localhost:8193/documents/update"
+               onres (JSON/stringify (clj->js (get-update-documents-formdata))))))
+
 
 (defn document-update-template [id dmt]
   [:div.form-group {:id "update" :class "form-group"}
@@ -80,50 +119,12 @@
             :class "btn btn-primary" :on-click docupdate}]])
 
 
-
-(defn getinputvalue[id]
-  (.-value (.getElementById js/document id)))
-
-(defn get-documents-formdata []
-  {:documentname (getinputvalue "documentname")
-   :title (getinputvalue "title")
-   :employeename (getinputvalue "employeename")
-   :date (getinputvalue "date")
-   :location (getinputvalue "location")
-   })
-
-(defn get-update-documents-formdata []
-  {
-   :id (getinputvalue "id")
-   :documentname (getinputvalue "upd_documentname")
-   :title (getinputvalue "upd_title")
-   :employeename (getinputvalue "upd_employeename")
-   :date (getinputvalue "upd_date")
-   :location (getinputvalue "upd_location")
-   })
-
-(defn save [event]
-  (let [onres (fn[data] (set! (.-location js/window) "http://localhost:8193"))]
-    (http-post "http://localhost:8193/documents/add"
-               onres  (JSON/stringify (clj->js (get-documents-formdata))))))
-
-(defn click-update[id]
-  (.assign js/location (str "#/documents/update/" id)))
-
-
-(defn docupdate [event]
-  (let [onres (fn[data]
-                (.assign js/location "/"))]
-    (http-post "http://localhost:8193/documents/update"
-               onres (JSON/stringify (clj->js (get-update-documents-formdata))))))
-
-
 (defn delete[id]
   (let [onres (fn [json]
                 ((reset! documents (getdata json))
                  (r/render [render-documents @documents]
                            (.-body js/document))))]
-    (http-delete (str "http://localhost:8193/documents/delete/" id) onres)))
+    (http-delete (str "http://localhost:8193/documents/delete/" id) nil onres)))
 
 
 (defn render-documents [documents]
@@ -159,8 +160,8 @@
                            [:td (.-documentname dn)]
                            [:td (.-title dn)]
                            [:td (.-employeename dn)]
-                           [:td  (f/unparse (f/formatter "MM/dd/yyyy")(f/parse (.-date dn)))]
-                           [:td (.-date dn)]
+                           [:td  (f/unparse (f/formatter "dd-MMM-yyyy")(f/parse (.-date dn)))]
+                           ;; [:td (.-date dn)]
                            [:td (.-location dn)]
                            [:td [:input {:type "button" :on-click #(click-update(.-id dn))
                                          :value "Update"}]]
@@ -203,6 +204,6 @@
     (.setEnabled history true)))
 
 (defn nav! [token]
-  (.setToken history token))
+  (.setToken (History.) token))
 
 (main)
