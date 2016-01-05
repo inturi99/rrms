@@ -31,7 +31,7 @@
   (xhr/send url callback "POST" data  (structs/Map. (clj->js {:Content-Type "application/json"}))))
 
 (defn http-delete [url callback]
-  (xhr/send url callback "DELETE" (structs/Map. (clj->js {:Content-Type "application/json"}))))
+  (xhr/send url callback "DELETE"  (structs/Map. (clj->js {:Content-Type "application/json"}))))
 
 (declare render-documents)
 
@@ -99,7 +99,6 @@
 (defn click-update[id]
   (.assign js/location (str "#/documents/update/" id)))
 
-
 (defn docupdate [event]
   (let [onres (fn[data]
                 (.assign js/location "/"))]
@@ -126,52 +125,57 @@
     (http-delete (str "http://localhost:8193/documents/delete/" id)  onres)))
 
 (defn render-documents [documents]
-  [:div {:id "app"}
+  [:div
    ;; [:div.padding]
    ;; [:div.page-header [:h1 "Record Room Management System"]]
-   ;; [:div#add]
+   [:div#add]
    [:div#update]
    [:div {:class "box"}
     [:div {:class "box-header"}
      [:h8 ""]]
     ;; [:br]
     ;; [:h1.text-center "List of Documents"]
-    [:div {:class "col-xs-12"}
-     [:div.form-group
-      [:div.col-sm-2 [:input.form-control {:id "sText" :type "text"
-                                           :placeholder "search by title"}]]
-      [:input {:type "button" :value "Search"
-               :class "btn btn-primary" :on-click search}]
-      (url-format "#/documents/add" "Add")]]
-    [:div {:class "box-body"}
+    [:div {:class "row"}
+     [:div {:class "col-xs-12"}
+      [:div.form-group
+       [:div.col-sm-2 [:input.form-control {:id "sText" :type "text"
+                                            :placeholder "search by title"}]]
+       [:input {:type "button" :value "Search"
+                :class "btn btn-primary" :on-click search}]
+       (url-format "#/documents/add" "Add")]
+      [:div {:class "box-body"}
 
-     [:table {:id "example1" :class "table table-bordered table-striped dataTable" :role "grid" :aria-describedby "example1_info"}
+       [:table {:id "example1" :class "table table-bordered table-striped dataTable"}
+        [:thead
+         [:tr
+          [:th "DocumentName"]
+          [:th "Title"]
+          [:th "Employeename"]
+          [:th "Date"]
+          [:th "Location"]
+          [:th " "]
+          [:th " "]
+          ]]
+        [:tbody
+         (for [dn documents]
+           ^{:key (.-id dn)} [:tr
+                              [:td (.-documentname dn)]
+                              [:td (.-title dn)]
+                              [:td (.-employeename dn)]
+                              [:td  (f/unparse (f/formatter "dd-MMM-yyyy")(f/parse (.-date dn)))]
+                              ;; [:td (.-date dn)]
+                              [:td (.-location dn)]
+                              ;; [:td [:input {:type "button" :on-click #(click-update(.-id dn))
+                              ;;               :class "glyphicon glyphicon-edit" :value "Update"}
+                              ;;       ]]
+                              [:td [:a {:href "javascript:;" :on-click  #(click-update(.-id dn))  :class "glyphicon glyphicon-edit"}]]
+                              ;; [:td [:input {:type "button" :on-click #(delete(.-id dn))
+                              ;;               :class "glyphicon glyphicon-remove"  :value "Delete"}]]
+                              [:td  [:a {:href "javascript:;" :on-click #(delete(.-id dn))  :class "glyphicon glyphicon-remove"}] ]
 
-      [:thead
-       [:tr {:role "row"}
-        [:th "DocumentName"]
-        [:th "Title"]
-        [:th "Employeename"]
-        [:th "Date"]
-        [:th "Location"]
-        [:th " "]
-        [:th " "]
-        ]]
-      [:tbody
-       (for [dn documents]
-         ^{:key (.-id dn)} [:tr
-                            [:td (.-documentname dn)]
-                            [:td (.-title dn)]
-                            [:td (.-employeename dn)]
-                            [:td  (f/unparse (f/formatter "dd-MMM-yyyy")(f/parse (.-date dn)))]
-                            ;; [:td (.-date dn)]
-                            [:td (.-location dn)]
-                            [:td [:input {:type "button" :on-click #(click-update(.-id dn))
-                                          :class "glyphicon glyphicon-edit" :value "Update"}
-                                  ]]
-                            [:td [:input {:type "button" :on-click #(delete(.-id dn))
-                                          :class "glyphicon glyphicon-remove"  :value "Delete"}]]
-                            ])]]
+                              ])]]]
+      ]
+
      ]
 
     ]
