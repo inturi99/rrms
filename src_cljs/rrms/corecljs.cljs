@@ -30,8 +30,8 @@
 (defn http-post [url callback data]
   (xhr/send url callback "POST" data  (structs/Map. (clj->js {:Content-Type "application/json"}))))
 
-(defn http-delete [url callback data]
-  (xhr/send url callback "DELETE" data  (structs/Map. (clj->js {:Content-Type "application/json"}))))
+(defn http-delete [url callback]
+  (xhr/send url callback "DELETE" (structs/Map. (clj->js {:Content-Type "application/json"}))))
 
 (declare render-documents)
 
@@ -39,7 +39,7 @@
   (let [stext (.-value (.getElementById js/document "sText"))
         onres (fn [json]
                 (r/render [render-documents (getdata json)]
-                          (.-body js/document)))]
+                          (.getElementById js/document "app1")))]
     (http-get (str "http://localhost:8193/documents/title/" stext) onres)))
 (defn row [label input]
   [:div.row
@@ -118,67 +118,72 @@
    [:input {:type "button" :value "Save"
             :class "btn btn-primary" :on-click docupdate}]])
 
-
 (defn delete[id]
   (let [onres (fn [json]
                 ((reset! documents (getdata json))
                  (r/render [render-documents @documents]
-                           (.-body js/document))))]
-    (http-delete (str "http://localhost:8193/documents/delete/" id) nil onres)))
-
+                           (.getElementById js/document "app1"))))]
+    (http-delete (str "http://localhost:8193/documents/delete/" id)  onres)))
 
 (defn render-documents [documents]
-  [:div.container
-   [:div.padding]
-   [:div.page-header [:h1 "Record Room Management System"]]
-   [:div#add]
+  [:div {:id "app"}
+   ;; [:div.padding]
+   ;; [:div.page-header [:h1 "Record Room Management System"]]
+   ;; [:div#add]
    [:div#update]
-   [:div#app
-    [:br]
-    [:h1.text-center "List of Documents"]
-    [:div
+   [:div {:class "box"}
+    [:div {:class "box-header"}
+     [:h8 ""]]
+    ;; [:br]
+    ;; [:h1.text-center "List of Documents"]
+    [:div {:class "col-xs-12"}
      [:div.form-group
       [:div.col-sm-2 [:input.form-control {:id "sText" :type "text"
                                            :placeholder "search by title"}]]
       [:input {:type "button" :value "Search"
                :class "btn btn-primary" :on-click search}]
       (url-format "#/documents/add" "Add")]]
-    [:table {:class "table table-striped table-bordered"}
-     [:thead
-      [:tr
-       [:th "DocumentName"]
-       [:th "Title"]
-       [:th "Employeename"]
-       [:th "Date"]
-       [:th "Location"]
-       [:th " "]
-       [:th " "]
-       ]]
-     [:tbody
-      (for [dn documents]
-        ^{:key (.-id dn)} [:tr
-                           [:td (.-documentname dn)]
-                           [:td (.-title dn)]
-                           [:td (.-employeename dn)]
-                           [:td  (f/unparse (f/formatter "dd-MMM-yyyy")(f/parse (.-date dn)))]
-                           ;; [:td (.-date dn)]
-                           [:td (.-location dn)]
-                           [:td [:input {:type "button" :on-click #(click-update(.-id dn))
-                                         :value "Update"}]]
-                           [:td [:input {:type "button" :on-click #(delete(.-id dn))
-                                         :value "Delete"}]]
-                           ])]]]
-   [:div.padding]
-   [:div.page-footer [:h4 "Copyright All Rights Reserved © 2016 TechnoIdentity Solutions Pvt.Ltd"]]
+    [:div {:class "box-body"}
+
+     [:table {:id "example1" :class "table table-bordered table-striped dataTable" :role "grid" :aria-describedby "example1_info"}
+
+      [:thead
+       [:tr {:role "row"}
+        [:th "DocumentName"]
+        [:th "Title"]
+        [:th "Employeename"]
+        [:th "Date"]
+        [:th "Location"]
+        [:th " "]
+        [:th " "]
+        ]]
+      [:tbody
+       (for [dn documents]
+         ^{:key (.-id dn)} [:tr
+                            [:td (.-documentname dn)]
+                            [:td (.-title dn)]
+                            [:td (.-employeename dn)]
+                            [:td  (f/unparse (f/formatter "dd-MMM-yyyy")(f/parse (.-date dn)))]
+                            ;; [:td (.-date dn)]
+                            [:td (.-location dn)]
+                            [:td [:input {:type "button" :on-click #(click-update(.-id dn))
+                                          :class "glyphicon glyphicon-edit" :value "Update"}
+                                  ]]
+                            [:td [:input {:type "button" :on-click #(delete(.-id dn))
+                                          :class "glyphicon glyphicon-remove"  :value "Delete"}]]
+                            ])]]
+     ]
+
+    ]
+   ;; [:div.padding]
+   ;;  [:div.page-footer [:h4 "Copyright All Rights Reserved © 2016 TechnoIdentity Solutions Pvt.Ltd"]]
    ])
-
-
 
 (defroute home-path "/" []
   (let [onres (fn [json]
                 ((reset! documents (getdata json))
                  (r/render [render-documents @documents]
-                           (.-body js/document))))]
+                           (.getElementById js/document "app1"))))]
     (http-get "http://localhost:8193/documents/all" onres)))
 
 (defroute documents-path "/documents/add" []
@@ -192,7 +197,6 @@
 
 (defroute "*" []
   (js/alert "<h1>Not Found Page</h1>"))
-
 
 (defn main
   []
