@@ -8,8 +8,8 @@
             [goog.structs :as structs]
             [cljs-time.format :as f]
             [cljs-time.core :as tt])
-  (:import goog.History)
-  )
+  (:import goog.History
+           goog.json.Serializer))
 
 (def documents (r/atom nil))
 
@@ -71,7 +71,7 @@
 (defn save [event]
   (let [onres (fn[data] (set! (.-location js/window) "http://localhost:8193"))]
     (http-post "http://localhost:8193/documents/add"
-               onres  (JSON/stringify (clj->js (get-documents-formdata))))))
+               onres  (.serialize (Serializer.) (clj->js (get-documents-formdata))))))
 
 (defn document-template []
   [:div {:id "add" :class "form-group"}
@@ -103,7 +103,7 @@
   (let [onres (fn[data]
                 (.assign js/location "/"))]
     (http-post "http://localhost:8193/documents/update"
-               onres (JSON/stringify (clj->js (get-update-documents-formdata))))))
+               onres (.serialize (Serializer.) (clj->js (get-update-documents-formdata))))))
 
 
 (defn document-update-template [id dmt]
