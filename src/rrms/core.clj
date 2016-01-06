@@ -30,6 +30,14 @@
 (defroutes app-routes
   (GET "/" [] home)
 
+  (GET "/documents/:index/:pagesize" [index pagesize]
+       (rr/content-type
+        (rr/response (db/get-all-documents-by-index-pagesize
+                      {:index (parse-int index)
+                       :pagesize (parse-int pagesize)
+                       }))
+        content-type))
+
   (GET "/documents/all" []
        (rr/content-type
         (rr/response (db/get-all-documents))
