@@ -11,7 +11,9 @@
             [bouncer.validators :as v]
             [clj-time.core :as t]
             [compojure.response :refer [render]]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [clj-time.format :as f]
+            [clj-time.coerce :as c])
   (:gen-class))
 
 (defn home
@@ -54,7 +56,7 @@
             (db/insert-documents {:documentname dn
                                   :title title
                                   :employeename en
-                                  :date (java.sql.Date/valueOf d)
+                                  :date (c/to-sql-time (f/parse d))
                                   :location lc
                                   :barcode br}))
            content-type)))
@@ -72,7 +74,7 @@
                                   :documentname dn
                                   :title title
                                   :employeename en
-                                  :date (java.sql.Date/valueOf d)
+                                  :date (c/to-sql-time (f/parse d))
                                   :location lc}))
            content-type)))
 
