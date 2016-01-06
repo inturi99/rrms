@@ -1,7 +1,7 @@
 -- name: get-documents-by-title
 -- search by title
 SELECT * from documents
-WHERE title = :title
+WHERE lower(title) LIKE ('%' || lower(:title) || '%')
 
 --name: get-all-documents
 SELECT id,documentname,title,employeename,date,location,isactive from documents WHERE isactive = 'TRUE' ORDER BY createdatetime DESC
