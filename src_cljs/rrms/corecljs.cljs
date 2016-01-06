@@ -26,7 +26,6 @@
 (defn http-get [url callback]
   (xhr/send url callback))
 
-
 (defn http-post [url callback data]
   (xhr/send url callback "POST" data  (structs/Map. (clj->js {:Content-Type "application/json"}))))
 
@@ -41,15 +40,18 @@
                 (r/render [render-documents (getdata json)]
                           (.getElementById js/document "app1")))]
     (http-get (str "http://localhost:8193/documents/title/" stext) onres)))
+
 (defn row [label input]
   [:div.row
    [:div.col-md-2 [:label label]]
    [:div.col-md-5 input]])
+
 (defn radio [label name value]
   [:div.radio
    [:label
     [:input {:field :radio :name name :value value}]
     label]])
+
 (defn input
   ([label type id value]
    (row label [:input.form-control {:type type :id id :defaultValue value}]))
@@ -64,9 +66,7 @@
    :title (getinputvalue "title")
    :employeename (getinputvalue "employeename")
    :date (getinputvalue "date")
-   :location (getinputvalue "location")
-   })
-
+   :location (getinputvalue "location") })
 
 (defn save [event]
   (let [onres (fn[data] (set! (.-location js/window) "http://localhost:8193"))]
@@ -81,8 +81,7 @@
    [:div#dt (input "Date":Date :date)]
    [:div#loc (input "Location":text :location)]
    [:input {:type "button" :value "Save"
-            :class "btn btn-primary" :on-click save}]
-   ])
+            :class "btn btn-primary" :on-click save}]])
 
 (defn get-update-documents-formdata []
   {
@@ -91,10 +90,7 @@
    :title (getinputvalue "upd_title")
    :employeename (getinputvalue "upd_employeename")
    :date (getinputvalue "upd_date")
-   :location (getinputvalue "upd_location")
-   })
-
-
+   :location (getinputvalue "upd_location")})
 
 (defn click-update[id]
   (.assign js/location (str "#/documents/update/" id)))
@@ -104,7 +100,6 @@
                 (.assign js/location "/"))]
     (http-post "http://localhost:8193/documents/update"
                onres (.serialize (Serializer.) (clj->js (get-update-documents-formdata))))))
-
 
 (defn document-update-template [id dmt]
   [:div.form-group {:id "update" :class "form-group"}
@@ -173,20 +168,23 @@
                               ;;               :class "glyphicon glyphicon-remove"  :value "Delete"}]]
                               [:td  [:a {:href "javascript:;" :on-click #(delete(.-id dn))  :class "glyphicon glyphicon-remove"}] ]
 
-                              ])]]]
-      ]
-
-     ]
-
-    ]
+                              ])]]]]]]
    ;; [:div.padding]
    ;;  [:div.page-footer [:h4 "Copyright All Rights Reserved © 2016 TechnoIdentity Solutions Pvt.Ltd"]]
    ])
+(defn table-mount []
+  (.ready (js/$ js/document)
+          (fn []
+            (.DataTable (js/$ "#example1")))))
+(defn home [documents]
+  (r/create-class {:reagent-render render-documents
+                   :component-did-mount table-mount }))
+
 
 (defroute home-path "/" []
   (let [onres (fn [json]
                 ((reset! documents (getdata json))
-                 (r/render [render-documents @documents]
+                 (r/render [home @documents]
                            (.getElementById js/document "app1"))))]
     (http-get "http://localhost:8193/documents/all" onres)))
 
