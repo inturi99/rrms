@@ -16,7 +16,7 @@
 (def document (r/atom {}))
 
 (defn url-format [url title]
-  [:a {:href url :class "btn btn-primary"} title])
+  [:a {:href url :class "btn btn-primary  glyphicon glyphicon-plus"} title])
 
 (def w (t/writer :json-verbose))
 
@@ -137,7 +137,7 @@
                                             :placeholder "search by title"}]]
        [:input {:type "button" :value "Search"
                 :class "btn btn-primary" :on-click search}]
-       (url-format "#/documents/add" "Add")]
+       (url-format "#/documents/add" "Document")]
       [:div {:class "box-body"}
 
        [:table {:id "example1" :class "table table-bordered table-striped dataTable"}
@@ -163,10 +163,10 @@
                               ;; [:td [:input {:type "button" :on-click #(click-update(.-id dn))
                               ;;               :class "glyphicon glyphicon-edit" :value "Update"}
                               ;;       ]]
-                              [:td [:a {:href "javascript:;" :on-click  #(click-update(.-id dn))  :class "glyphicon glyphicon-edit"}]]
+                              [:td [:a {:href "javascript:;" :on-click  #(click-update(.-id dn))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
                               ;; [:td [:input {:type "button" :on-click #(delete(.-id dn))
                               ;;               :class "glyphicon glyphicon-remove"  :value "Delete"}]]
-                              [:td  [:a {:href "javascript:;" :on-click #(delete(.-id dn))  :class "glyphicon glyphicon-remove"}] ]
+                              [:td  [:a {:href "javascript:;" :on-click #(delete(.-id dn))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]
 
                               ])]]]]]]
    ;; [:div.padding]
