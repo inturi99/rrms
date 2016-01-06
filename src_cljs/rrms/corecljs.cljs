@@ -134,9 +134,9 @@
      [:div {:class "col-xs-12"}
       [:div.form-group
        [:div.col-sm-2 [:input.form-control {:id "sText" :type "text"
-                                            :placeholder "search by title"}]]
-       [:input {:type "button" :value "Search"
-                :class "btn btn-primary" :on-click search}]
+                                            :placeholder "Search By Title" :on-change search}]]
+       ;; [:input {:type "button" :value "Search"
+       ;;          :class "btn btn-primary" :on-click search}]
        (url-format "#/documents/add" "Document")]
       [:div {:class "box-body"}
 
