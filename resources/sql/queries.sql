@@ -6,6 +6,9 @@ WHERE lower(title) LIKE ('%' || lower(:title) || '%')
 --name: get-all-documents
 SELECT id,documentname,title,employeename,date,location,isactive from documents WHERE isactive = 'TRUE' ORDER BY createdatetime DESC
 
+--name: get-total-documents
+SELECT COUNT(id) AS totaldocuments from documents where isactive = 'TRUE'
+
 --name: get-all-documents-by-index-pagesize
 SELECT MyRowNumber, id,documentname,title,employeename,date,location,isactive  FROM (SELECT  ROW_NUMBER() OVER (ORDER BY id asc) as MyRowNumber,* FROM Documents WHERE isactive = 'TRUE' ) tblDocuments WHERE  MyRowNumber BETWEEN ( ((:index - 1) * :pagesize )+ 1) AND :index*:pagesize
 
