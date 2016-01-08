@@ -32,10 +32,11 @@
 
   (GET "/documents/paging/:index/:pagesize" [index pagesize]
        (rr/content-type
-        (rr/response (db/get-all-documents-by-index-pagesize
-                      {:index (parse-int index)
-                       :pagesize (parse-int pagesize)
-                       }))
+        (rr/response {:totaldocuments (db/get-total-documents)
+                      :data (db/get-all-documents-by-index-pagesize
+                             {:index (parse-int index)
+                              :pagesize (parse-int pagesize)
+                              })})
         content-type))
 
   (GET "/documents/all" []
