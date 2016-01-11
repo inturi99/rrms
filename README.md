@@ -8,7 +8,7 @@ git clone https://github.com/inturi99/rrms.git
 
 ##Database
 
-Create Empty Databse  Postgrees SQL  DB Name :   rrms
+Create Empty Database  Postgrees SQL  DB Name :   rrms
 
 To apply pending migrations (Run):
 
