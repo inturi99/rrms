@@ -1,4 +1,4 @@
-# rrms
+# Record Room Management System
 
 FIXME: description
 
