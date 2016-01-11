@@ -4,21 +4,23 @@ FIXME: description
 
 ## Installation
 
-Download from http://example.com/FIXME.
+git clone https://github.com/inturi99/rrms.git
+
+##Database:
+
+Create Empty Databse  Postgrees SQL  DB Name :   rrms
+
+## RUN
+
+lein run
+
+##Build
+
+lein cljsbuild auto
 
 ## Usage
 
-FIXME: explanation
-
-    $ java -jar rrms-0.1.0-standalone.jar [args]
-
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
+http://localhost:8193
 
 ### Bugs
 
@@ -30,7 +32,7 @@ FIXME: listing of options this app accepts.
 
 ## License
 
-Copyright © 2015 FIXME
+Copyright © 2016 FIXME
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
