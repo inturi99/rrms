@@ -7,7 +7,8 @@
             [cognitect.transit :as t]
             [goog.structs :as structs]
             [cljs-time.format :as f]
-            [cljs-time.core :as tt])
+            [cljs-time.core :as tt]
+            [cljsjs.react-bootstrap])
   (:import goog.History
            goog.json.Serializer))
 
@@ -15,10 +16,49 @@
 
 (def document (r/atom {}))
 
+(defn get-total-rec-no [nos]
+  (let [totrec (quot nos 10)]
+    (if (zero? (mod nos 10))
+      totrec
+      (+ 1 totrec))))
+
 (defn url-format [url title]
   [:a {:href url :class "btn btn-primary  glyphicon glyphicon-plus"} title])
 
 (def w (t/writer :json-verbose))
+
+(def pager-elem (r/adapt-react-class (aget js/ReactBootstrap "Pagination")))
+
+(defn getd [indexNo]
+  (let [onres (fn [json]
+                (let [d (.-data (getdata json))]
+                  (reset! documents d)
+                  (r/render [render-documents @documents]
+                            (.getElementById js/document "app1"))))]
+    (http-get (str (str "http://localhost:8193/documents/paging/" indexNo) "/10") onres)))
+
+(defn pager [value totalItems]
+  [pager-elem {:bsSize "large"
+               :prev true
+               :next true
+               :first true
+               :last true
+               :ellipsis true
+               :items @totalItems
+               :activePage @value
+               :maxButtons 5
+               :onSelect (fn [s1 s2]
+                           (let [i (.-eventKey s2)]
+                             (getd i)
+                             (reset! value i)))}])
+
+
+(defn shared-state [totalRec]
+  (let [val (r/atom 1)
+        trec (r/atom totalRec)]
+    [:div.row
+     [pager val trec]]))
+
 
 (defn getdata [res]
   (.getResponseJson (.-target res)))
@@ -140,7 +180,7 @@
        (url-format "#/documents/add" "Document")]
       [:div {:class "box-body"}
 
-       [:table {:id "example1" :class "table table-bordered table-striped dataTable"}
+       [:table {:class "table table-bordered table-striped dataTable"}
         [:thead
          [:tr
           [:th "DocumentName"]
@@ -168,7 +208,8 @@
                               ;;               :class "glyphicon glyphicon-remove"  :value "Delete"}]]
                               [:td  [:a {:href "javascript:;" :on-click #(delete(.-id dn))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]
 
-                              ])]]]]]]
+                              ])]]]
+      ]]]
    ;; [:div.padding]
    ;;  [:div.page-footer [:h4 "Copyright All Rights Reserved © 2016 TechnoIdentity Solutions Pvt.Ltd"]]
    ])
@@ -183,13 +224,18 @@
 
 (defroute home-path "/" []
   (let [onres (fn [json]
-                ((reset! documents (getdata json))
-                 (r/render [home @documents]
-                           (.getElementById js/document "app1"))))]
-    (http-get "http://localhost:8193/documents/all" onres)))
+                (let [dt (getdata json)]
+                  (reset! documents (.-data dt))
+                  (r/render [render-documents @documents]
+                            (.getElementById js/document "app1"))
+                  (r/render [shared-state (get-total-rec-no
+                                           (.-totaldocuments(first
+                                                             (.-totaldocuments dt))))]
+                            (.getElementById js/document "pindex"))))]
+    (http-get "http://localhost:8193/documents/paging/1/10" onres)))
 
 (defroute documents-path "/documents/add" []
-  (r/render-component [document-template](js/document.getElementById "add")))
+  (r/render-component [document-template] (js/document.getElementById "add")))
 
 (defroute documents-path1 "/documents/update/:id" [id]
   (r/render [document-update-template id

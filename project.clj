@@ -21,7 +21,8 @@
                  [ring-cors "0.1.7"]
                  [bouncer "0.3.3"]
                  [clj-time "0.11.0"]
-                 ]
+                 [cljsjs/react-bootstrap "0.28.1-0"
+                  :exclusions [org.webjars.bower/jquery]]]
 
   :plugins [[lein-ring "0.8.13"]
             [migratus-lein "0.1.7"]
