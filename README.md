@@ -10,6 +10,12 @@ git clone https://github.com/inturi99/rrms.git
 
 Create Empty Databse  Postgrees SQL  DB Name :   rrms
 
+To apply pending migrations:
+
+Run  
+
+lein migratus migrate
+
 ##Build
 
 lein cljsbuild auto
