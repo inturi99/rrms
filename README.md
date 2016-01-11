@@ -6,9 +6,9 @@ FIXME: description
 
 git clone https://github.com/inturi99/rrms.git
 
-##Database:
+##Database
 
-Create Empty Databse  Postgrees SQL  DB Name :   rrms
+Create Empty Databse  Postgrees SQL  DB Name :   #rrms
 
 ##Build
 
