@@ -12,15 +12,40 @@
   (:import goog.History
            goog.json.Serializer))
 
+(def storage (r/atom {:documents {}
+                      :current-page 1
+                      :total-pages 1
+                      :document {}}))
+
 (def documents (r/atom nil))
 
 (def document (r/atom {}))
+
+(defn set-key-value [k v]
+  (reset! storage (assoc @storage k v)))
+
+(defn get-value! [k]
+  (k @storage))
 
 (defn get-total-rec-no [nos]
   (let [totrec (quot nos 10)]
     (if (zero? (mod nos 10))
       totrec
       (+ 1 totrec))))
+
+(defn get-new-page-data [data current-page]
+  (let [total-pages (get-total-rec-no (count data))
+        pag-start (* 10 (dec current-page))
+        pag-end (+ pag-start 9)]
+    (cond (<= total-pages 1) ((set-key-value :current-page 1)
+                              (set-key-value :total-pages 1)
+                              (clj->js (keep-indexed #(if (< %1 10) %2) data)))
+          :else ((set-key-value :total-pages total-pages)
+                 (when (< total-pages (get-value! :current-page))
+                   (set-key-value :current-page total-pages))
+                 (clj->js (keep-indexed
+                           #(if (and (>= %1 pag-start) (<= %1 pag-end)) %2) data))))))
+
 
 (defn url-format [url title]
   [:a {:href url :class "btn btn-primary  glyphicon glyphicon-plus"} title])
@@ -32,25 +57,25 @@
 (defn getd [indexNo]
   (let [onres (fn [json]
                 (let [d (.-data (getdata json))]
-                  (reset! documents d)
-                  (r/render [render-documents @documents]
+                  (set-key-value :documents d)
+                  (r/render [render-documents (get-value! :documents)]
                             (.getElementById js/document "app1"))))]
     (http-get (str (str "http://localhost:8193/documents/paging/" indexNo) "/10") onres)))
 
-(defn pager [value totalItems]
+(defn pager [value total-rec]
   [pager-elem {:bsSize "large"
                :prev true
                :next true
                :first true
                :last true
                :ellipsis true
-               :items @totalItems
-               :activePage @value
+               :items (:total-pages @storage)
+               :activePage (:current-page @storage)
                :maxButtons 5
                :onSelect (fn [s1 s2]
                            (let [i (.-eventKey s2)]
                              (getd i)
-                             (reset! value i)))}])
+                             (set-key-value :current-page i)))}])
 
 
 (defn shared-state [totalRec]
@@ -154,8 +179,9 @@
 
 (defn delete[id]
   (let [onres (fn [json]
-                ((reset! documents (getdata json))
-                 (r/render [render-documents @documents]
+                ((set-key-value :documents (getdata json))
+                 (r/render [render-documents (get-new-page-data (get-value! :documents)
+                                                                (get-value! :current-page))]
                            (.getElementById js/document "app1"))))]
     (http-delete (str "http://localhost:8193/documents/delete/" id)  onres)))
 
@@ -225,13 +251,14 @@
 (defroute home-path "/" []
   (let [onres (fn [json]
                 (let [dt (getdata json)]
-                  (reset! documents (.-data dt))
-                  (r/render [render-documents @documents]
+                  (set-key-value :documents (.-data dt))
+                  (r/render [render-documents (get-value! :documents)]
                             (.getElementById js/document "app1"))
-                  (r/render [shared-state (get-total-rec-no
-                                           (.-totaldocuments(first
-                                                             (.-totaldocuments dt))))]
-                            (.getElementById js/document "pindex"))))]
+                  (r/render [shared-state 0]
+                            (.getElementById js/document "pindex"))
+                  (set-key-value :total-pages (get-total-rec-no
+                                               (.-totaldocuments(first
+                                                                 (.-totaldocuments dt)))))))]
     (http-get "http://localhost:8193/documents/paging/1/10" onres)))
 
 (defroute documents-path "/documents/add" []
