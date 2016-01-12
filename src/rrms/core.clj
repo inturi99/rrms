@@ -44,11 +44,23 @@
         (rr/response (db/get-all-documents))
         content-type))
 
-  (GET "/documents/title/:title" [title]
+  (GET "/documents/title/:dt" [dt]
        (rr/content-type
         (rr/response  (db/get-documents-by-title
-                       {:title title}))
+                       {:documentname dt
+                        :title dt}))
         content-type))
+
+  (GET "/documents/date/:dt1/:dt2/:dt" [dt1 dt2 dt]
+       (rr/content-type
+        (rr/response (db/get-documents-between-two-dates
+                      {:date1  (c/to-sql-date (f/parse dt1))
+                       :date2  (c/to-sql-date (f/parse dt2))
+                       :documentname dt
+                       :title dt
+                       }))
+        content-type))
+
   (GET "/documents/id/:id" [id]
        (rr/content-type
         (rr/response (db/get-documents-by-id
