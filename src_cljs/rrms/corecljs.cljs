@@ -8,7 +8,8 @@
             [goog.structs :as structs]
             [cljs-time.format :as f]
             [cljs-time.core :as tt]
-            [cljsjs.react-bootstrap])
+            [cljsjs.react-bootstrap]
+            [clojure.string :as st])
   (:import goog.History
            goog.json.Serializer))
 
@@ -93,11 +94,17 @@
 (declare render-documents)
 
 (defn search [event]
-  (let [stext (.-value (.getElementById js/document "sText"))
+  (let [dt1 (.-value (.getElementById js/document "dt1"))
+        dt2 (.-value (.getElementById js/document "dt2"))
+        dt  (.-value (.getElementById js/document "dt"))
         onres (fn [json]
-                (r/render [render-documents (getdata json)]
-                          (.getElementById js/document "app1")))]
-    (http-get (str "http://localhost:8193/documents/title/" stext) onres)))
+                ((set-key-value :documents (getdata json))
+                 (r/render [render-documents (get-new-page-data (get-value! :documents)
+                                                                (get-value! :current-page))]
+                           (.getElementById js/document "app1"))))]
+    (http-get (str "http://localhost:8193/documents/date/" (if (st/blank? dt1) "0000-00-00" dt1)
+                   "/"(if (st/blank? dt2) "0000-00-00" dt2)
+                   "/"(if(st/blank? dt) "0" dt)) onres)))
 
 (defn row [label input]
   [:div.row
@@ -193,10 +200,12 @@
     [:div {:class "row"}
      [:div {:class "col-xs-12"}
       [:div.form-group
-       [:div.col-sm-2 [:input.form-control {:id "sText" :type "text"
-                                            :placeholder "Search By Title" :on-change search}]]
-       ;; [:input {:type "button" :value "Search"
-       ;;          :class "btn btn-primary" :on-click search}]
+       [:div.col-sm-2 [:input.form-control {:id "dt1" :type "date"}]]
+       [:div.col-sm-2 [:input.form-control {:id "dt2" :type "date"}]]
+       [:div.col-sm-2 [:input.form-control {:id "dt" :type "text"
+                                            :placeholder "Search By Title"}]]
+       [:input {:type "button" :value "Search"
+                :class "btn btn-primary" :on-click search}]
        (url-format "#/documents/add" "Document")]
       [:div {:class "box-body"}
 
