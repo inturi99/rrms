@@ -13,7 +13,9 @@
             [compojure.response :refer [render]]
             [clojure.java.io :as io]
             [clj-time.format :as f]
-            [clj-time.coerce :as c])
+            [clj-time.coerce :as c]
+            [clojure.string :as st]
+            )
   (:gen-class))
 
 (defn home
@@ -44,22 +46,41 @@
         (rr/response (db/get-all-documents))
         content-type))
 
-  (GET "/documents/title/:dt" [dt]
+  (GET "/documents/searchby/title/:dt" [dt]
        (rr/content-type
         (rr/response  (db/get-documents-by-title
-                       {:documentname dt
-                        :title dt}))
+                       {:srcstr dt}))
         content-type))
 
-  (GET "/documents/date/:dt1/:dt2/:dt" [dt1 dt2 dt]
+  (GET "/documents/searchby/:date" [date]
        (rr/content-type
-        (rr/response (db/get-documents-between-two-dates
-                      {:date1  (c/to-sql-date (f/parse dt1))
-                       :date2  (c/to-sql-date (f/parse dt2))
-                       :documentname dt
-                       :title dt
-                       }))
+        (rr/response  (db/search-documents-by-date
+                       {:date1 (c/to-sql-time (f/parse date))})) content-type))
+
+  (GET "/documents/searchby/:date1/:date2" [date1 date2]
+       (rr/content-type
+        (rr/response  (db/search-documents-between-two-dates
+                       {:date1 (c/to-sql-time (f/parse date1))
+                        :date2 (c/to-sql-time (f/parse date2))}))
         content-type))
+
+  (GET "/documents/searchby/:date1/:date2/:dt" [date1 date2 dt]
+       (rr/content-type
+        (rr/response  (db/search-documents
+                       {:date1 (c/to-sql-time (f/parse date1))
+                        :date2 (c/to-sql-time (f/parse date2))
+                        :srcstr dt }))
+        content-type))
+
+
+  ;; (GET "/documents/date/:dt1/:dt2/:dt" [dt1 dt2 dt]
+  ;;      (rr/content-type
+  ;;       (rr/response (db/search-documents1
+  ;;                     {:date1  (if (st/blank? dt1) "0000-00-00" (c/to-sql-time (f/parse dt1)))
+  ;;                      :date2 (if (st/blank? dt2) "0000-00-00" (c/to-sql-time (f/parse dt2)))
+  ;;                      :srcstr (if (st/blank? dt) "0" dt)
+  ;;                      }))
+  ;;       content-type))
 
   (GET "/documents/id/:id" [id]
        (rr/content-type
