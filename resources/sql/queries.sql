@@ -1,10 +1,17 @@
 -- name: get-documents-by-title
 -- search by title
 SELECT * from documents
-WHERE lower(documentname) LIKE ('%' || lower(:documentname) || '%') OR lower(title) LIKE ('%' || lower(:title) || '%')
+WHERE lower(documentname) LIKE ('%' || lower(:srcstr) || '%') OR lower(title) LIKE ('%' || lower(:srcstr) || '%')
 
--- name: get-documents-between-two-dates
-select * from documents where date = :date1 OR  (date BETWEEN :date1  AND :date2) OR lower(documentname) LIKE ('%' || lower(:documentname) || '%') OR lower(title) LIKE ('%' || lower(:title) || '%')  AND isactive = 'TRUE' ORDER BY createdatetime DESC
+-- name: search-documents-by-date
+select * from documents where date = :date1 AND isactive = 'TRUE' ORDER BY createdatetime DESC
+
+-- name: search-documents-between-two-dates
+select * from documents where (date BETWEEN :date1  AND :date2) AND isactive = 'TRUE' ORDER BY createdatetime DESC
+
+-- name: search-documents
+select * from documents where (date BETWEEN :date1  AND :date2)  AND (lower(documentname) LIKE ('%' || lower(:srcstr) || '%') OR lower(title) LIKE ('%' || lower(:srcstr) || '%'))  AND isactive = 'TRUE' ORDER BY createdatetime DESC
+
 
 --name: get-all-documents
 SELECT id,documentname,title,employeename,date,location,isactive from documents WHERE isactive = 'TRUE' ORDER BY createdatetime DESC
@@ -28,3 +35,11 @@ RETURNING id,documentname,title,employeename,date,location,barcode,isactive
 -- name: delete-documents-by-id
 UPDATE documents set isactive = 'FALSE' where id = :id
 RETURNING id
+
+ --name: search-documents1
+SELECT * FROM documents WHERE
+    CASE
+    WHEN :date1 <> '0000-00-00' AND :date2  <> '0000-00-00' AND :srcstr = '0' THEN  (date BETWEEN :date1  AND :date2) AND isactive = 'TRUE'
+    ELSE (date BETWEEN :date1  AND :date2) AND (lower(documentname) LIKE ('%' || lower(:srcstr) || '%') OR lower(title) LIKE ('%' || lower(:srcstr) || '%'))
+    AND isactive = 'TRUE'
+    END
