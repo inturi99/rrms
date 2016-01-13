@@ -14,12 +14,7 @@
 
 (def storage (r/atom {:documents {}
                       :current-page 1
-                      :total-pages 1
-                      :document {}}))
-
-(def documents (r/atom nil))
-
-(def document (r/atom {}))
+                      :total-pages 1}))
 
 (defn set-key-value [k v]
   (reset! storage (assoc @storage k v)))
@@ -37,14 +32,12 @@
   (let [total-pages (get-total-rec-no (count data))
         pag-start (* 10 (dec current-page))
         pag-end (+ pag-start 9)]
-    (cond (<= total-pages 1) ((set-key-value :current-page 1)
-                              (set-key-value :total-pages 1)
-                              (clj->js (keep-indexed #(if (< %1 10) %2) data)))
-          :else ((set-key-value :total-pages total-pages)
-                 (when (< total-pages (get-value! :current-page))
-                   (set-key-value :current-page total-pages))
-                 (clj->js (keep-indexed
-                           #(if (and (>= %1 pag-start) (<= %1 pag-end)) %2) data))))))
+    (cond (<= total-pages 1) (do (set-key-value :current-page 1)
+                                 (set-key-value :total-pages 1)
+                                 (clj->js (keep-indexed #(if (< %1 10) %2) data)))
+          :else (do (set-key-value :total-pages total-pages)
+                    (clj->js (keep-indexed
+                              #(if (and (>= %1 pag-start) (<= %1 pag-end)) %2) data))))))
 
 
 (defn url-format [url title]
@@ -135,6 +128,7 @@
 
 (defn save [event]
   (let [onres (fn[data] (set! (.-location js/window) "http://localhost:8193"))]
+    (js/console.log (get-documents-formdata))
     (http-post "http://localhost:8193/documents/add"
                onres  (.serialize (Serializer.) (clj->js (get-documents-formdata))))))
 
@@ -267,7 +261,7 @@
 (defroute documents-path1 "/documents/update/:id" [id]
   (r/render [document-update-template id
              (first (filter (fn[obj]
-                              (=(.-id obj) (.parseInt js/window id))) @documents))]
+                              (=(.-id obj) (.parseInt js/window id))) (get-value! :documents)))]
             (js/document.getElementById "update")))
 
 (defroute "*" []
