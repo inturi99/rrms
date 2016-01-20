@@ -8,10 +8,13 @@
             [goog.structs :as structs]
             [cljs-time.format :as f]
             [cljs-time.core :as tt]
+            [cljs-time.coerce :as c]
+            [cljs-time.predicates :as p]
             [cljsjs.react-bootstrap]
             [clojure.string :as st])
   (:import goog.History
-           goog.json.Serializer))
+           goog.json.Serializer
+           goog.date.Date))
 
 (def storage (r/atom {:documents {}
                       :current-page 1
@@ -19,6 +22,9 @@
 
 (defn set-key-value [k v]
   (reset! storage (assoc @storage k v)))
+
+(defn http-get [url callback]
+  (xhr/send url callback))
 
 (defn get-value! [k]
   (k @storage))
@@ -28,6 +34,29 @@
     (if (zero? (mod nos 10))
       totrec
       (+ 1 totrec))))
+
+(defn get-range-data [data date1 date2]
+  (filter #(tt/within? (tt/interval date1 (tt/plus date2 (tt/days 1)))
+                       (c/from-string (.-date %))) data))
+
+(defn included? [s subs]
+  (>= (.indexOf s subs) 0))
+
+
+(defn filter-by-str [data lstr]
+  (filter #(or (included? (st/lower-case (.-title %)) lstr)
+               (included? (st/lower-case (.-documentname %)) lstr))
+          data))
+
+(defn filter-by-str-dates
+  ([data lstr date1] (filter #(and (or (included? (st/lower-case (.-title %)) lstr)
+                                       (included? (st/lower-case (.-documentname %)) lstr))
+                                   (tt/= (c/from-string (.-date %)) date1)) data))
+  ([data lstr date1 date2](filter #(and (or (included? (st/lower-case (.-title %)) lstr)
+                                            (included? (st/lower-case (.-documentname %)) lstr))
+                                        (tt/within? (tt/interval date1 (tt/plus date2 (tt/days 1)))
+                                                    (c/from-string (.-date %)))) data)))
+
 
 (defn get-new-page-data [data current-page]
   (let [total-pages (get-total-rec-no (count data))
@@ -41,20 +70,28 @@
                               #(if (and (>= %1 pag-start) (<= %1 pag-end)) %2) data))))))
 
 
+(defn is-all-search-fields-empty?
+  [date1 date2 srcstr]
+  (and (st/blank? date1)
+       (st/blank? date2)
+       (st/blank? srcstr)))
+
 (defn url-format [url title]
   [:a {:href url :class "btn btn-primary  glyphicon glyphicon-plus"} title])
 
 (def w (t/writer :json-verbose))
 
-(def pager-elem (r/adapt-react-class (aget js/ReactBootstrap "Pagination")))
+(defn filter-data [data date1 date2 search-str]
+  (let [srcstrv (st/blank? search-str)
+        lstr (st/lower-case search-str)]
 
-(defn getd [indexNo]
-  (let [onres (fn [json]
-                (let [d (.-data (getdata json))]
-                  (set-key-value :documents d)
-                  (r/render [render-documents (get-value! :documents)]
-                            (.getElementById js/document "app1"))))]
-    (http-get (str (str "http://localhost:8193/documents/paging/" indexNo) "/10") onres)))
+    (cond (and (not (nil? date1)) (nil? date2) srcstrv) (filter #(tt/= date1 (c/from-string (.-date %))) data)
+          (and (not (nil? date1)) (not (nil? date2)) srcstrv) (get-range-data data date1 date2)
+          (and (nil? date1) (nil? date2) (not srcstrv)) (filter-by-str (get-value! :documents) lstr)
+          (and (not (nil? date1)) (nil? date2) (not srcstrv)) (filter-by-str-dates data lstr date1)
+          :else (filter-by-str-dates data lstr date1 date2))))
+
+(def pager-elem (r/adapt-react-class (aget js/ReactBootstrap "Pagination")))
 
 (defn pager [value total-rec]
   [pager-elem {:bsSize "large"
@@ -68,8 +105,12 @@
                :maxButtons 5
                :onSelect (fn [s1 s2]
                            (let [i (.-eventKey s2)]
-                             (getd i)
-                             (set-key-value :current-page i)))}])
+                             (do
+                               (set-key-value :current-page i)
+                               (r/render [render-documents (get-new-page-data (get-value! :documents)
+                                                                              (get-value! :current-page))]
+                                         (.getElementById js/document "app1")))))}])
+
 
 
 (defn shared-state [totalRec]
@@ -82,9 +123,6 @@
 (defn getdata [res]
   (.getResponseJson (.-target res)))
 
-(defn http-get [url callback]
-  (xhr/send url callback))
-
 (defn http-post [url callback data]
   (xhr/send url callback "POST" data  (structs/Map. (clj->js {:Content-Type "application/json"}))))
 
@@ -96,15 +134,19 @@
 (defn search [event]
   (let [dt1 (.-value (.getElementById js/document "dt1"))
         dt2 (.-value (.getElementById js/document "dt2"))
-        dt  (.-value (.getElementById js/document "dt"))
-        onres (fn [json]
-                ((set-key-value :documents (getdata json))
-                 (r/render [render-documents (get-new-page-data (get-value! :documents)
-                                                                (get-value! :current-page))]
-                           (.getElementById js/document "app1"))))]
-    (http-get (str "http://localhost:8193/documents/date/" (if (st/blank? dt1) "0000-00-00" dt1)
-                   "/"(if (st/blank? dt2) "0000-00-00" dt2)
-                   "/"(if(st/blank? dt) "0" dt)) onres)))
+        dt  (.-value (.getElementById js/document "dt"))]
+
+    (do (set-key-value :documents
+                       (clj->js
+                        (filter-data (get-value! :documents)
+                                     (c/from-string dt1)
+                                     (c/from-string dt2) dt)))
+        (set-key-value :current-page 1)
+        (r/render [render-documents
+                   (get-new-page-data (get-value! :documents)
+                                      (get-value! :current-page))]
+                  (.getElementById js/document "app1")))))
+
 
 (defn row [label input]
   [:div.row
@@ -138,6 +180,17 @@
     (js/console.log (get-documents-formdata))
     (http-post "http://localhost:8193/documents/add"
                onres  (.serialize (Serializer.) (clj->js (get-documents-formdata))))))
+
+(defn get-all-click [event]
+  (let [onres (fn [json]
+                (let [dt (getdata json)]
+                  (set-key-value :documents dt)
+                  (set-key-value :total-pages (get-total-rec-no dt))
+                  (set-key-value :current-page 1)
+                  (r/render [render-documents (get-new-page-data (get-value! :documents)
+                                                                 (get-value! :current-page))]
+                            (.getElementById js/document "app1"))))]
+    (http-get "http://localhost:8193/documents/all" onres)))
 
 (defn document-template []
   [:div {:id "add" :class "form-group"}
@@ -203,10 +256,12 @@
        [:div.col-sm-2 [:input.form-control {:id "dt1" :type "date"}]]
        [:div.col-sm-2 [:input.form-control {:id "dt2" :type "date"}]]
        [:div.col-sm-2 [:input.form-control {:id "dt" :type "text"
-                                            :placeholder "Search By Title"}]]
+                                            :placeholder "Enter search text.."}]]
        [:input {:type "button" :value "Search"
                 :class "btn btn-primary" :on-click search}]
-       (url-format "#/documents/add" "Document")]
+       (url-format "#/documents/add" "Document")
+       [:input {:id "getall" :type "button" :value "Get-All"
+                :class "btn btn-primary" :on-click get-all-click}]]
       [:div {:class "box-body"}
 
        [:table {:class "table table-bordered table-striped dataTable"}
@@ -254,15 +309,14 @@
 (defroute home-path "/" []
   (let [onres (fn [json]
                 (let [dt (getdata json)]
-                  (set-key-value :documents (.-data dt))
-                  (r/render [render-documents (get-value! :documents)]
+                  (set-key-value :documents dt)
+                  (set-key-value :total-pages (get-total-rec-no dt))
+                  (r/render [render-documents (get-new-page-data (get-value! :documents)
+                                                                 (get-value! :current-page))]
                             (.getElementById js/document "app1"))
                   (r/render [shared-state 0]
-                            (.getElementById js/document "pindex"))
-                  (set-key-value :total-pages (get-total-rec-no
-                                               (.-totaldocuments(first
-                                                                 (.-totaldocuments dt)))))))]
-    (http-get "http://localhost:8193/documents/paging/1/10" onres)))
+                            (.getElementById js/document "pindex"))))]
+    (http-get "http://localhost:8193/documents/all" onres)))
 
 (defroute documents-path "/documents/add" []
   (r/render-component [document-template] (js/document.getElementById "add")))
