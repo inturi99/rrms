@@ -87,7 +87,7 @@
 
     (cond (and (not (nil? date1)) (nil? date2) srcstrv) (filter #(tt/= date1 (c/from-string (.-date %))) data)
           (and (not (nil? date1)) (not (nil? date2)) srcstrv) (get-range-data data date1 date2)
-          (and (nil? date1) (nil? date2) (not srcstrv)) (filter-by-str (get-value! :documents) lstr)
+          (and (nil? date1) (nil? date2) (not srcstrv)) (filter-by-str data lstr)
           (and (not (nil? date1)) (nil? date2) (not srcstrv)) (filter-by-str-dates data lstr date1)
           :else (filter-by-str-dates data lstr date1 date2))))
 
