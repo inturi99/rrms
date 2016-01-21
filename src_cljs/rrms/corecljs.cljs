@@ -18,7 +18,9 @@
 
 (def storage (r/atom {:documents {}
                       :current-page 1
-                      :total-pages 1}))
+                      :total-pages 1
+                      :page-location nil}))
+
 
 (defn set-key-value [k v]
   (reset! storage (assoc @storage k v)))
@@ -28,6 +30,9 @@
 
 (defn get-value! [k]
   (k @storage))
+
+(defn page []
+  (get-value! :page-location))
 
 (defn get-total-rec-no [nos]
   (let [totrec (quot nos 10)]
@@ -70,12 +75,6 @@
                               #(if (and (>= %1 pag-start) (<= %1 pag-end)) %2) data))))))
 
 
-(defn is-all-search-fields-empty?
-  [date1 date2 srcstr]
-  (and (st/blank? date1)
-       (st/blank? date2)
-       (st/blank? srcstr)))
-
 (defn url-format [url title]
   [:a {:href url :class "btn btn-primary  glyphicon glyphicon-plus"} title])
 
@@ -107,9 +106,9 @@
                            (let [i (.-eventKey s2)]
                              (do
                                (set-key-value :current-page i)
-                               (r/render [render-documents (get-new-page-data (get-value! :documents)
-                                                                              (get-value! :current-page))]
-                                         (.getElementById js/document "app1")))))}])
+                               (set-key-value :page-location
+                                              [render-documents (get-new-page-data (get-value! :documents)
+                                                                                   (get-value! :current-page))]))))}])
 
 
 
@@ -131,6 +130,9 @@
 
 (declare render-documents)
 
+(defn cancel [event]
+  (secretary/dispatch! "/"))
+
 (defn search [event]
   (let [dt1 (.-value (.getElementById js/document "dt1"))
         dt2 (.-value (.getElementById js/document "dt2"))
@@ -142,10 +144,10 @@
                                      (c/from-string dt1)
                                      (c/from-string dt2) dt)))
         (set-key-value :current-page 1)
-        (r/render [render-documents
-                   (get-new-page-data (get-value! :documents)
-                                      (get-value! :current-page))]
-                  (.getElementById js/document "app1")))))
+        (set-key-value :page-location
+                       [render-documents
+                        (get-new-page-data (get-value! :documents)
+                                           (get-value! :current-page))]))))
 
 
 (defn row [label input]
@@ -176,8 +178,11 @@
    :location (getinputvalue "location") })
 
 (defn save [event]
-  (let [onres (fn[data] (set! (.-location js/window) "http://localhost:8193"))]
-    (js/console.log (get-documents-formdata))
+  (let [onres (fn[json] (do
+                         (set-key-value :documents (getdata json))
+                         (set-key-value :page-location
+                                        [render-documents (get-new-page-data (get-value! :documents)
+                                                                             (get-value! :current-page))])))]
     (http-post "http://localhost:8193/documents/add"
                onres  (.serialize (Serializer.) (clj->js (get-documents-formdata))))))
 
@@ -187,9 +192,9 @@
                   (set-key-value :documents dt)
                   (set-key-value :total-pages (get-total-rec-no dt))
                   (set-key-value :current-page 1)
-                  (r/render [render-documents (get-new-page-data (get-value! :documents)
-                                                                 (get-value! :current-page))]
-                            (.getElementById js/document "app1"))))]
+                  (set-key-value :page-location
+                                 [render-documents (get-new-page-data (get-value! :documents)
+                                                                      (get-value! :current-page))])))]
     (http-get "http://localhost:8193/documents/all" onres)))
 
 (defn document-template []
@@ -200,7 +205,9 @@
    [:div#dt (input "Date":Date :date)]
    [:div#loc (input "Location":text :location)]
    [:input {:type "button" :value "Save"
-            :class "btn btn-primary" :on-click save}]])
+            :class "btn btn-primary" :on-click save}]
+   [:input {:type "button" :value "Cancel"
+            :class "btn btn-primary" :on-click cancel}]])
 
 (defn get-update-documents-formdata []
   {
@@ -212,11 +219,11 @@
    :location (getinputvalue "upd_location")})
 
 (defn click-update[id]
-  (.assign js/location (str "#/documents/update/" id)))
+  (secretary/dispatch! (str "#/documents/update/" id)))
 
 (defn docupdate [event]
   (let [onres (fn[data]
-                (.assign js/location "/"))]
+                (secretary/dispatch! "/"))]
     (http-post "http://localhost:8193/documents/update"
                onres (.serialize (Serializer.) (clj->js (get-update-documents-formdata))))))
 
@@ -229,15 +236,21 @@
    [:div (input "Date":Date :upd_date  (f/unparse (f/formatter "yyyy-MM-dd")(f/parse (.-date dmt))))]
    [:div (input "Location":text :upd_location (.-location dmt))]
    [:input {:type "button" :value "Save"
-            :class "btn btn-primary" :on-click docupdate}]])
+            :class "btn btn-primary" :on-click docupdate}]
+   [:input {:type "button" :value "Cancel"
+            :class "btn btn-primary" :on-click cancel}]])
 
 (defn delete[id]
   (let [onres (fn [json]
-                ((set-key-value :documents (getdata json))
-                 (r/render [render-documents (get-new-page-data (get-value! :documents)
-                                                                (get-value! :current-page))]
-                           (.getElementById js/document "app1"))))]
+                (do
+                  (set-key-value :documents (getdata json))
+                  (set-key-value :page-location
+                                 [render-documents (get-new-page-data (get-value! :documents)
+                                                                      (get-value! :current-page))])))]
     (http-delete (str "http://localhost:8193/documents/delete/" id)  onres)))
+
+(defn add [event]
+  (secretary/dispatch! "/documents/add"))
 
 (defn render-documents [documents]
   [:div
@@ -259,8 +272,10 @@
                                             :placeholder "Enter search text.."}]]
        [:input {:type "button" :value "Search"
                 :class "btn btn-primary" :on-click search}]
-       (url-format "#/documents/add" "Document")
-       [:input {:id "getall" :type "button" :value "Get-All"
+       [:input {:type "button" :value "Add"
+                :class "btn btn-primary" :on-click add}]
+       ;; (url-format "#/documents/add" "Document")
+       [:input {:id "getall" :type "button" :value "Refresh"
                 :class "btn btn-primary" :on-click get-all-click}]]
       [:div {:class "box-body"}
 
@@ -293,6 +308,7 @@
                               [:td  [:a {:href "javascript:;" :on-click #(delete(.-id dn))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]
 
                               ])]]]
+      [:div [shared-state 0]]
       ]]]
    ;; [:div.padding]
    ;;  [:div.page-footer [:h4 "Copyright All Rights Reserved © 2016 TechnoIdentity Solutions Pvt.Ltd"]]
@@ -311,28 +327,32 @@
                 (let [dt (getdata json)]
                   (set-key-value :documents dt)
                   (set-key-value :total-pages (get-total-rec-no dt))
-                  (r/render [render-documents (get-new-page-data (get-value! :documents)
-                                                                 (get-value! :current-page))]
-                            (.getElementById js/document "app1"))
-                  (r/render [shared-state 0]
-                            (.getElementById js/document "pindex"))))]
+                  (set-key-value :page-location
+                                 (render-documents
+                                  (get-new-page-data
+                                   (get-value! :documents)
+                                   (get-value! :current-page))))))]
     (http-get "http://localhost:8193/documents/all" onres)))
 
 (defroute documents-path "/documents/add" []
-  (r/render-component [document-template] (js/document.getElementById "add")))
+  (set-key-value :page-location [document-template]))
 
 (defroute documents-path1 "/documents/update/:id" [id]
-  (r/render [document-update-template id
-             (first (filter (fn[obj]
-                              (=(.-id obj) (.parseInt js/window id))) (get-value! :documents)))]
-            (js/document.getElementById "update")))
+  (set-key-value :page-location
+                 [document-update-template id
+                  (first (filter (fn[obj]
+                                   (=(.-id obj) (.parseInt js/window id))) (get-value! :documents)))]))
 
 (defroute "*" []
   (js/alert "<h1>Not Found Page</h1>"))
 
+
 (defn main
   []
   (secretary/set-config! :prefix "#")
+  (set-key-value :page-location [render-documents []])
+  (r/render [page]
+            (.getElementById js/document "app1"))
   (let [history (History.)]
     (events/listen history "navigate"
                    (fn [event]
