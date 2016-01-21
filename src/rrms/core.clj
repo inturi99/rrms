@@ -93,15 +93,16 @@
                en "employeename" d "date"
                lc "location" br "barcode" }
               body]
-          (rr/content-type
-           (rr/response
+          (do
             (db/insert-documents {:documentname dn
                                   :title title
                                   :employeename en
                                   :date (c/to-sql-time (f/parse d))
                                   :location lc
-                                  :barcode br}))
-           content-type)))
+                                  :barcode br})
+            (rr/content-type
+             (rr/response (db/get-all-documents))
+             content-type))))
 
   (POST "/documents/update"
         {body :body}
