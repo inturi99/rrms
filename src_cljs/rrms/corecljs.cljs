@@ -11,7 +11,11 @@
             [cljs-time.coerce :as c]
             [cljs-time.predicates :as p]
             [cljsjs.react-bootstrap]
-            [clojure.string :as st])
+            [clojure.string :as st]
+            [goog.dom :as dom]
+            [goog.history.EventType :as EventType]
+            [bouncer.core :as b]
+            [bouncer.validators :as v])
   (:import goog.History
            goog.json.Serializer
            goog.date.Date))
@@ -19,7 +23,8 @@
 (def storage (r/atom {:documents {}
                       :current-page 1
                       :total-pages 1
-                      :page-location nil}))
+                      :page-location nil
+                      :user nil}))
 
 
 (defn set-key-value [k v]
@@ -33,6 +38,77 @@
 
 (defn page []
   (get-value! :page-location))
+
+;; login functions
+(defn validator [data-set]
+  (first (b/validate data-set
+                     :username-email [[v/required :message "Filed is required"]
+                                      [v/email :message "Enter valid email-id"]]
+                     :password [[v/required :message "Filed is required"]
+                                [v/string  :message "Enter valid password"]])))
+
+(defn input-element [id ttype data-set placeholder in-focus]
+  [:input#id.form-control {:type ttype
+                           :value (@data-set id)
+                           :placeholder placeholder
+                           :on-change #(swap! data-set assoc id (-> % .-target .-value))
+                           :on-blur  #(reset! in-focus "yes")
+                           }])
+
+
+(defn input-validate [id label span-class ttype data-set placeholder focus]
+  (let [input-focus (r/atom nil)]
+    (fn []
+      [:div.form-group
+       [:div.col-md-12
+        [:label label]
+        [:div.input-group.col-sm-10
+         [:span {:class span-class}]
+         [input-element id ttype data-set placeholder input-focus]]
+        (if (or @input-focus @focus)
+          (if (= nil (validator @data-set))
+            [:div]
+            [:div {:style  {:color "red"}}
+             [:b
+              (str (first ((validator @data-set) id)))]]  )
+          [:div])]])))
+
+
+(defn submit-login [data-set focus]
+  (if (= nil (validator @data-set))
+    (js/alert "You are su4ccessfully Registered")
+    (reset! focus "yes")))
+
+(defn button [value ttype data-set focus]
+  [:div.form-group
+   [:div.col-md-6
+    [:button.btn.btn-primary {:type ttype
+                              :on-click #(submit-login data-set focus)} value]]])
+
+(defn login []
+  (let [my-data (r/atom  {})
+        focus (r/atom nil)]
+    (fn []
+      [:div.container
+       [:div.panel.panel-primary.modal-dialog
+        [:div.panel-heading
+         [:h2 "Log-in"]]
+        [:div.panel-body
+         [input-validate :username-email "Username or Email"  "input-group-addon glyphicon glyphicon-user" "email" my-data "eg.,Siva or siva@***.com" focus]
+         [input-validate :password "Password"  "input-group-addon glyphicon glyphicon-lock" "password" my-data "eg., .........." focus]
+         [button "Sign-in" "button" my-data focus ]]]])))
+
+
+;;--------------------
+
+(defn set-page! [currnt-page]
+  (if (nil? (get-value! :user))(set-key-value :page-location
+                                              [login])
+      (set-key-value :page-location
+                     currnt-page)))
+
+(defn is-authenticated? []
+  (not (nil? (get-value! :user))))
 
 (defn get-total-rec-no [nos]
   (let [totrec (quot nos 10)]
@@ -131,7 +207,7 @@
 (declare render-documents)
 
 (defn cancel [event]
-  (secretary/dispatch! "/"))
+  (secretary/dispatch! "/documents"))
 
 (defn search [event]
   (let [dt1 (.-value (.getElementById js/document "dt1"))
@@ -223,7 +299,7 @@
 
 (defn docupdate [event]
   (let [onres (fn[data]
-                (secretary/dispatch! "/"))]
+                (secretary/dispatch! "/documents"))]
     (http-post "http://localhost:8193/documents/update"
                onres (.serialize (Serializer.) (clj->js (get-update-documents-formdata))))))
 
@@ -323,25 +399,26 @@
 
 
 (defroute home-path "/" []
-  (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :documents dt)
-                  (set-key-value :total-pages (get-total-rec-no dt))
-                  (set-key-value :page-location
-                                 (render-documents
-                                  (get-new-page-data
-                                   (get-value! :documents)
-                                   (get-value! :current-page))))))]
-    (http-get "http://localhost:8193/documents/all" onres)))
+  (set-page! (get-value! :page-location)))
+
+(defroute documents-list "/documents" []
+  (if (is-authenticated?)(let [onres (fn [json]
+                                       (let [dt (getdata json)]
+                                         (set-key-value :documents dt)
+                                         (set-key-value :total-pages (get-total-rec-no dt))
+                                         (set-key-value :page-location  [render-documents (get-new-page-data (get-value! :documents)
+                                                                                                             (get-value! :current-page))])))]
+                           (http-get "http://localhost:8193/documents/all" onres))
+      (set-key-value :page-location [login])))
+
 
 (defroute documents-path "/documents/add" []
-  (set-key-value :page-location [document-template]))
+  (set-page! [document-template]))
 
 (defroute documents-path1 "/documents/update/:id" [id]
-  (set-key-value :page-location
-                 [document-update-template id
-                  (first (filter (fn[obj]
-                                   (=(.-id obj) (.parseInt js/window id))) (get-value! :documents)))]))
+  (set-page! [document-update-template id
+              (first (filter (fn[obj]
+                               (=(.-id obj) (.parseInt js/window id))) (get-value! :documents)))]))
 
 (defroute "*" []
   (js/alert "<h1>Not Found Page</h1>"))
@@ -350,7 +427,7 @@
 (defn main
   []
   (secretary/set-config! :prefix "#")
-  (set-key-value :page-location [render-documents []])
+  (set-key-value :page-location [login])
   (r/render [page]
             (.getElementById js/document "app1"))
   (let [history (History.)]
