@@ -39,6 +39,23 @@
 (defn page []
   (get-value! :page-location))
 
+(defn getinputvalue[id]
+  (.-value (.getElementById js/document id)))
+
+
+(defn getdata [res]
+  (.getResponseJson (.-target res)))
+
+(defn get-status [res]
+  (.getStatus (.-target res)))
+
+(defn http-post [url callback data]
+  (xhr/send url callback "POST" data  (structs/Map. (clj->js {:Content-Type "application/json"}))))
+
+(defn http-delete [url callback]
+  (xhr/send url callback "DELETE"  (structs/Map. (clj->js {:Content-Type "application/json"}))))
+
+
 ;; login functions
 (defn validator [data-set]
   (first (b/validate data-set
@@ -48,12 +65,13 @@
                                 [v/string  :message "Enter valid password"]])))
 
 (defn input-element [id ttype data-set placeholder in-focus]
-  [:input#id.form-control {:type ttype
-                           :value (@data-set id)
-                           :placeholder placeholder
-                           :on-change #(swap! data-set assoc id (-> % .-target .-value))
-                           :on-blur  #(reset! in-focus "yes")
-                           }])
+  [:input.form-control {:id id
+                        :type ttype
+                        :value (@data-set id)
+                        :placeholder placeholder
+                        :on-change #(swap! data-set assoc id (-> % .-target .-value))
+                        :on-blur  #(reset! in-focus "yes")
+                        }])
 
 
 (defn input-validate [id label span-class ttype data-set placeholder focus]
@@ -76,7 +94,12 @@
 
 (defn submit-login [data-set focus]
   (if (= nil (validator @data-set))
-    (js/alert "You are su4ccessfully Registered")
+    (let [onresp (fn [json] (if (= (get-status json) 200) ((set-key-value :user (getdata json))
+                                                          (secretary/dispatch! "/documents"))))]
+      (http-post "http://localhost:8193/user/authenticate"
+                 onresp (.serialize (Serializer.)
+                                    (clj->js {:email (getinputvalue "username-email")
+                                              :password (getinputvalue "password")} ))))
     (reset! focus "yes")))
 
 (defn button [value ttype data-set focus]
@@ -195,15 +218,6 @@
      [pager val trec]]))
 
 
-(defn getdata [res]
-  (.getResponseJson (.-target res)))
-
-(defn http-post [url callback data]
-  (xhr/send url callback "POST" data  (structs/Map. (clj->js {:Content-Type "application/json"}))))
-
-(defn http-delete [url callback]
-  (xhr/send url callback "DELETE"  (structs/Map. (clj->js {:Content-Type "application/json"}))))
-
 (declare render-documents)
 
 (defn cancel [event]
@@ -242,9 +256,6 @@
    (row label [:input.form-control {:type type :id id :defaultValue value}]))
   ([label type id]
    (input label type id "")))
-
-(defn getinputvalue[id]
-  (.-value (.getElementById js/document id)))
 
 (defn get-documents-formdata []
   {:documentname (getinputvalue "documentname")
@@ -402,6 +413,7 @@
   (set-page! (get-value! :page-location)))
 
 (defroute documents-list "/documents" []
+  (js/console.log (get-value! :user))
   (if (is-authenticated?)(let [onres (fn [json]
                                        (let [dt (getdata json)]
                                          (set-key-value :documents dt)

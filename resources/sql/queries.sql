@@ -6,7 +6,7 @@ VALUES (:firstname, :lastname, :email, now(), 'TRUE', :password,now(),now(),:rol
 
 -- name: get-user-by-email
 
-SELECT firstname, lastname, email,lastlogin,role FROM users
+SELECT firstname, lastname, email,lastlogin,role,password FROM users
 WHERE email = :email AND isactive = 'TRUE'
 
 -- name: get-users

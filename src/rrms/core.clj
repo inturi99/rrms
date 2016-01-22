@@ -30,6 +30,10 @@
 (defmethod parse-int java.lang.Integer [n] n)
 (defmethod parse-int java.lang.String [s] (Integer/parseInt s))
 
+(defn get-auth-result [user password]
+  (and (not (nil? user))
+       (pwds/check password (:password user))))
+
 (defroutes app-routes
   (GET "/" [] home)
 
@@ -85,8 +89,8 @@
 
   (GET "/documents/id/:id" [id]
        (rr/content-type
-        (rr/response (db/get-documents-by-id
-                      {:id (parse-int id)}))
+        (rr/status (db/get-documents-by-id
+                    {:id (parse-int id)}))
         content-type))
 
   (POST "/documents/add" {body :body}
@@ -105,7 +109,7 @@
              (rr/response (db/get-all-documents))
              content-type))))
 
-  (POST "/users/create" {body :body}
+  (POST "/user/create" {body :body}
         (let [{fn "firstname" ln "lastname"
                em "email"
                pwd "password" ro "role" }
@@ -135,6 +139,16 @@
                                   :date (c/to-sql-time (f/parse d))
                                   :location lc}))
            content-type)))
+
+
+  (POST "/user/authenticate" {body :body}
+        (let [user (first (db/get-user-by-email {:email (body "email")}))
+              result (if(get-auth-result user (body "password")){:body (dissoc user :password) :status 200}
+                        {:body {} :status 401})]
+          (rr/content-type
+           (rr/status  {:body (result :body)
+                        :headers {"Content-Type" "application/json; charset=utf-8"}}
+                       (result :status)) content-type)))
 
   (DELETE "/documents/delete/:id" [id]
           (db/delete-documents-by-id
