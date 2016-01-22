@@ -89,8 +89,8 @@
 
   (GET "/documents/id/:id" [id]
        (rr/content-type
-        (rr/status (db/get-documents-by-id
-                    {:id (parse-int id)}))
+        (rr/response (db/get-documents-by-id
+                {:id (parse-int id)}))
         content-type))
 
   (POST "/documents/add" {body :body}
