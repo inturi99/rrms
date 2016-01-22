@@ -1,3 +1,23 @@
+-- name: create-user
+-- creates a new user record
+INSERT INTO users
+(firstname, lastname, email,lastlogin,isactive, password,createdatetime,updateddatetime,role)
+VALUES (:firstname, :lastname, :email, now(), 'TRUE', :password,now(),now(),:role) RETURNING id
+
+-- name: get-user-by-email
+
+SELECT firstname, lastname, email,lastlogin,role FROM users
+WHERE email = :email AND isactive = 'TRUE'
+
+-- name: get-users
+SELECT id, firstname, lastname, email FROM users
+
+-- name: delete-user!
+-- delete a user given the id
+UPDATE users set isactive = 'FALSE' where id = :id
+RETURNING id
+
+
 -- name: get-documents-by-title
 -- search by title
 SELECT * from documents
