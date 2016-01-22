@@ -15,6 +15,7 @@
             [clj-time.format :as f]
             [clj-time.coerce :as c]
             [clojure.string :as st]
+            [crypto.password.bcrypt :as pwds]
             )
   (:gen-class))
 
@@ -103,6 +104,20 @@
             (rr/content-type
              (rr/response (db/get-all-documents))
              content-type))))
+
+  (POST "/users/create" {body :body}
+        (let [{fn "firstname" ln "lastname"
+               em "email"
+               pwd "password" ro "role" }
+              body]
+          (rr/content-type
+           (rr/response
+            (db/create-user {:firstname fn
+                             :lastname ln
+                             :email em
+                             :password (pwds/encrypt pwd)
+                             :role ro}))
+           content-type)))
 
   (POST "/documents/update"
         {body :body}
