@@ -21,6 +21,7 @@
                  [ring-cors "0.1.7"]
                  [bouncer "0.3.3"]
                  [clj-time "0.11.0"]
+                 [crypto-password "0.1.3"]
                  [cljsjs/react-bootstrap "0.28.1-0"
                   :exclusions [org.webjars.bower/jquery]]
                  [com.andrewmcveigh/cljs-time "0.4.0"]]
