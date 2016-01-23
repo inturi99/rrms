@@ -117,12 +117,9 @@
         [:div.panel-heading
          [:h2 "Log-in"]]
         [:div.panel-body
-         [input-validate :username-email "Username or Email"  "input-group-addon glyphicon glyphicon-user" "email" my-data "eg.,Siva or siva@***.com" focus]
-         [input-validate :password "Password"  "input-group-addon glyphicon glyphicon-lock" "password" my-data "eg., .........." focus]
+         [input-validate :username-email "Email"  "input-group-addon glyphicon glyphicon-user" "email" my-data "Email" focus]
+         [input-validate :password "Password"  "input-group-addon glyphicon glyphicon-lock" "password" my-data "password" focus]
          [button "Sign-in" "button" my-data focus ]]]])))
-
-
-;;--------------------
 
 (defn set-page! [currnt-page]
   (if (nil? (get-value! :user))(set-key-value :page-location
@@ -347,11 +344,9 @@
    [:div#update]
    [:div {:class "box"}
     [:div {:class "box-header"}
-     [:h8 ""]]
-    ;; [:br]
-    ;; [:h1.text-center "List of Documents"]
-    [:div {:class "row"}
-     [:div {:class "col-xs-12"}
+     [:h3 "List of Documents"]]
+    [:div.row
+     [:div.col-md-12
       [:div.form-group
        [:div.col-sm-2 [:input.form-control {:id "dt1" :type "date"}]]
        [:div.col-sm-2 [:input.form-control {:id "dt2" :type "date"}]]
@@ -394,8 +389,9 @@
                               ;;               :class "glyphicon glyphicon-remove"  :value "Delete"}]]
                               [:td  [:a {:href "javascript:;" :on-click #(delete(.-id dn))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]
 
-                              ])]]]
-      [:div [shared-state 0]]
+                              ])]]
+       [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]
+       ]
       ]]]
    ;; [:div.padding]
    ;;  [:div.page-footer [:h4 "Copyright All Rights Reserved © 2016 TechnoIdentity Solutions Pvt.Ltd"]]
