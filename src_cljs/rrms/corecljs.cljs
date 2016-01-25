@@ -20,11 +20,11 @@
            goog.json.Serializer
            goog.date.Date))
 
-(def storage (r/atom {:documents {}
-                      :current-page 1
-                      :total-pages 1
-                      :page-location nil
-                      :user nil}))
+(defonce storage (r/atom {:documents {}
+                          :current-page 1
+                          :total-pages 1
+                          :page-location nil
+                          :user nil}))
 
 
 (defn set-key-value [k v]
@@ -122,10 +122,8 @@
          [button "Sign-in" "button" my-data focus ]]]])))
 
 (defn set-page! [currnt-page]
-  (if (nil? (get-value! :user))(set-key-value :page-location
-                                              [login])
-      (set-key-value :page-location
-                     currnt-page)))
+  (set-key-value :page-location
+                 currnt-page))
 
 (defn is-authenticated? []
   (not (nil? (get-value! :user))))
@@ -409,15 +407,13 @@
   (set-page! (get-value! :page-location)))
 
 (defroute documents-list "/documents" []
-  (js/console.log (get-value! :user))
-  (if (is-authenticated?)(let [onres (fn [json]
-                                       (let [dt (getdata json)]
-                                         (set-key-value :documents dt)
-                                         (set-key-value :total-pages (get-total-rec-no dt))
-                                         (set-key-value :page-location  [render-documents (get-new-page-data (get-value! :documents)
-                                                                                                             (get-value! :current-page))])))]
-                           (http-get "http://localhost:8193/documents/all" onres))
-      (set-key-value :page-location [login])))
+  (let [onres (fn [json]
+                (let [dt (getdata json)]
+                  (set-key-value :documents dt)
+                  (set-key-value :total-pages (get-total-rec-no dt))
+                  (set-key-value :page-location  [render-documents (get-new-page-data (get-value! :documents)
+                                                                                      (get-value! :current-page))])))]
+    (http-get "http://localhost:8193/documents/all" onres)))
 
 
 (defroute documents-path "/documents/add" []
@@ -435,7 +431,7 @@
 (defn main
   []
   (secretary/set-config! :prefix "#")
-  (set-key-value :page-location [login])
+  (set-key-value :page-location [render-documents []])
   (r/render [page]
             (.getElementById js/document "app1"))
   (let [history (History.)]
