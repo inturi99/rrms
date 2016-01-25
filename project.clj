@@ -13,7 +13,7 @@
                  [ring/ring-jetty-adapter "1.4.0"]
                  [korma "0.4.0"]
                  [ring/ring-json "0.4.0"]
-                 [org.clojure/clojurescript "0.0-2843"]
+                 [org.clojure/clojurescript "0.0-2985"]
                  [secretary "1.2.3"]
                  [reagent "0.5.1"]
                  [yesql "0.5.1"]
