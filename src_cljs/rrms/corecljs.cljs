@@ -121,12 +121,13 @@
          [input-validate :password "Password"  "input-group-addon glyphicon glyphicon-lock" "password" my-data "password" focus]
          [button "Sign-in" "button" my-data focus ]]]])))
 
-(defn set-page! [currnt-page]
-  (set-key-value :page-location
-                 currnt-page))
-
 (defn is-authenticated? []
   (not (nil? (get-value! :user))))
+
+(defn set-page! [currnt-page]
+  (if (is-authenticated?)(set-key-value :page-location
+                                        currnt-page)
+      (set-key-value :page-location [login])))
 
 (defn get-total-rec-no [nos]
   (let [totrec (quot nos 10)]
@@ -407,20 +408,21 @@
   (set-page! (get-value! :page-location)))
 
 (defroute documents-list "/documents" []
-  (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :documents dt)
-                  (set-key-value :total-pages (get-total-rec-no dt))
-                  (set-key-value :page-location  [render-documents (get-new-page-data (get-value! :documents)
-                                                                                      (get-value! :current-page))])))]
-    (http-get "http://localhost:8193/documents/all" onres)))
+  (if (is-authenticated?)(let [onres (fn [json]
+                                       (let [dt (getdata json)]
+                                         (set-key-value :documents dt)
+                                         (set-key-value :total-pages (get-total-rec-no dt))
+                                         (set-key-value :page-location  [render-documents (get-new-page-data (get-value! :documents)
+                                                                                                             (get-value! :current-page))])))]
+                           (http-get "http://localhost:8193/documents/all" onres))
+      (set-key-value :page-location [login])))
 
 
 (defroute documents-path "/documents/add" []
   (set-page! [document-template]))
 
 (defroute documents-path1 "/documents/update/:id" [id]
-  (set-page! [document-update-template id
+ (set-page! [document-update-template id
               (first (filter (fn[obj]
                                (=(.-id obj) (.parseInt js/window id))) (get-value! :documents)))]))
 
@@ -431,7 +433,7 @@
 (defn main
   []
   (secretary/set-config! :prefix "#")
-  (set-key-value :page-location [render-documents []])
+  (set-key-value :page-location [login])
   (r/render [page]
             (.getElementById js/document "app1"))
   (let [history (History.)]
