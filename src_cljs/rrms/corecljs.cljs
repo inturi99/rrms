@@ -56,11 +56,14 @@
   (xhr/send url callback "DELETE"  (structs/Map. (clj->js {:Content-Type "application/json"}))))
 
 
-;; login functions
-(defn validator [data-set]
+;; =====================================================================================================
+;; login-form with validations
+;; =====================================================================================================
+
+(defn login-validator [data-set]
   (first (b/validate data-set
-                     :username-email [[v/required :message "Filed is required"]
-                                      [v/email :message "Enter valid email-id"]]
+                     :email [[v/required :message "Filed is required"]
+                             [v/email :message "Enter valid email-id"]]
                      :password [[v/required :message "Filed is required"]
                                 [v/string  :message "Enter valid password"]])))
 
@@ -74,7 +77,7 @@
                         }])
 
 
-(defn input-validate [id label span-class ttype data-set placeholder focus]
+(defn login-input-element [id label span-class ttype data-set placeholder focus]
   (let [input-focus (r/atom nil)]
     (fn []
       [:div.form-group
@@ -84,29 +87,27 @@
          [:span {:class span-class}]
          [input-element id ttype data-set placeholder input-focus]]
         (if (or @input-focus @focus)
-          (if (= nil (validator @data-set))
+          (if (= nil (login-validator @data-set))
             [:div]
-            [:div {:style  {:color "red"}}
-             [:b
-              (str (first ((validator @data-set) id)))]]  )
+            [:div {:style  {:color "red"}} [:b (str (first ((login-validator @data-set) id)))]])
           [:div])]])))
 
 
 (defn submit-login [data-set focus]
-  (if (= nil (validator @data-set))
-    (let [onresp (fn [json] (if (= (get-status json) 200) ((set-key-value :user (getdata json))
-                                                          (secretary/dispatch! "/documents"))))]
+  (if (= nil (login-validator @data-set))
+    (let [onresp (fn [json]
+                   (if (= (get-status json) 200)
+                     ((set-key-value :user (getdata json))
+                      (secretary/dispatch! "/documents"))))]
       (http-post "http://localhost:8193/user/authenticate"
-                 onresp (.serialize (Serializer.)
-                                    (clj->js {:email (getinputvalue "username-email")
-                                              :password (getinputvalue "password")} ))))
+                 onresp (.serialize (Serializer.) (clj->js @data-set ))))
     (reset! focus "yes")))
 
-(defn button [value ttype data-set focus]
+(defn sign-in-button [data-set focus]
   [:div.form-group
    [:div.col-md-6
-    [:button.btn.btn-primary {:type ttype
-                              :on-click #(submit-login data-set focus)} value]]])
+    [:button.btn.btn-primary {:type "button"
+                              :on-click #(submit-login data-set focus)} "Sign-in"]]])
 
 (defn login []
   (let [my-data (r/atom  {})
@@ -117,9 +118,13 @@
         [:div.panel-heading
          [:h2 "Log-in"]]
         [:div.panel-body
-         [input-validate :username-email "Email"  "input-group-addon glyphicon glyphicon-user" "email" my-data "Email" focus]
-         [input-validate :password "Password"  "input-group-addon glyphicon glyphicon-lock" "password" my-data "password" focus]
-         [button "Sign-in" "button" my-data focus ]]]])))
+         [login-input-element :email "Email"  "input-group-addon glyphicon glyphicon-user" "email" my-data "Email" focus]
+         [login-input-element :password "Password"  "input-group-addon glyphicon glyphicon-lock" "password" my-data "password" focus]
+         [sign-in-button my-data focus ]]]])))
+
+;; ====================================================================================================
+;; end of login-form
+;; ====================================================================================================
 
 (defn is-authenticated? []
   (not (nil? (get-value! :user))))
@@ -235,39 +240,93 @@
                         (get-new-page-data (get-value! :documents)
                                            (get-value! :current-page))]))))
 
+;; ========================================================================================
+;; Add and Update form creation validation
+;; ========================================================================================
 
-(defn row [label input]
-  [:div.row
-   [:div.col-md-2 [:label label]]
-   [:div.col-md-5 input]])
+(defn form-validator [data-set]
+  (first (b/validate data-set
+                     :documentname [[v/required :message "Filed is required"]
+                                    [v/string :message "Enter valid Document Name"]]
+                     :title [[v/required :message "Filed is required"]
+                             [v/string :message "Enter valid Title"]]
+                     :employeename [[v/required :message "Filed is required"]
+                                    [v/string  :message "Enter valid Employee name"]]
+                     :date [[v/required :message "Filed is required"]
+                            [v/datetime  :message "Enter valid Date"]]
+                     :location [[v/required :message "Filed is required"]
+                                [v/string  :message "Enter valid Location"]])))
 
-(defn radio [label name value]
-  [:div.radio
-   [:label
-    [:input {:field :radio :name name :value value}]
-    label]])
+(defn form-input-element [id label ttype data-set focus]
+  (let [input-focus (r/atom nil)]
+    (fn []
+      [:div.form-group
+       [:div.col-md-12
+        [:div.row
+         [:div.col-md-2 [:label label]]
+         [:div.col-md-6 [input-element id ttype data-set label input-focus]]
+         [:div.col-md-4 (if (or @input-focus @focus)
+                          (if (= nil (form-validator @data-set))
+                            [:div]
+                            [:div {:style  {:color "red"}}
+                             [:b (str (first ((form-validator @data-set) id)))]])
+                          [:div])]]]] )))
 
-(defn input
-  ([label type id value]
-   (row label [:input.form-control {:type type :id id :defaultValue value}]))
-  ([label type id]
-   (input label type id "")))
 
-(defn get-documents-formdata []
-  {:documentname (getinputvalue "documentname")
-   :title (getinputvalue "title")
-   :employeename (getinputvalue "employeename")
-   :date (getinputvalue "date")
-   :location (getinputvalue "location") })
+(defn button [data-set focus fun value]
+  [:button.btn.btn-primary {:type "button"
+                            :on-click fun} value] )
 
-(defn save [event]
-  (let [onres (fn[json] (do
-                         (set-key-value :documents (getdata json))
-                         (set-key-value :page-location
-                                        [render-documents (get-new-page-data (get-value! :documents)
-                                                                             (get-value! :current-page))])))]
-    (http-post "http://localhost:8193/documents/add"
-               onres  (.serialize (Serializer.) (clj->js (get-documents-formdata))))))
+(defn form-save [data-set focus]
+  (if (= nil (form-validator @data-set))
+    (let [onres (fn[json]
+                  (do
+                    (set-key-value :documents (getdata json))
+                    (set-key-value :page-location
+                                   [render-documents (get-new-page-data (get-value! :documents)
+                                                                        (get-value! :current-page))])))]
+      (http-post "http://localhost:8193/documents/add"
+                 onres  (.serialize (Serializer.) (clj->js @data-set))))
+    (reset! focus "on")))
+
+(defn form-cancel [event]
+  (secretary/dispatch! "/documents"))
+
+(defn document-template-form [doc-name data-set focus]
+  [:div#add.container
+   [:div.panel.panel-primary.model-dialog
+    [:div.panel-heading
+     [:h2 doc-name]]
+    [:div.panel-boby
+     [:div.container
+      [:div.form-group
+       [form-input-element :documentname "Document Name" "text" data-set focus]
+       [form-input-element :title "Title" "text" data-set focus ]
+       [form-input-element :employeename "Employee name" "text" data-set focus]
+       [form-input-element :date "Date" "date" data-set focus]
+       [form-input-element :location "Location" "text" data-set focus]
+       [button data-set focus #(form-save data-set focus) "Save"]
+       [button data-set focus form-cancel "cancel"]]]]]])
+
+(defn document-update-template1 [id dmt]
+  (let [add-data (r/atom {:documentname (.-documentname dmt)
+                          :title (.-title dmt)
+                          :employeename (.-employeename dmt)
+                          :date (f/unparse (f/formatter "yyyy-MM-dd")(f/parse (.-date dmt)))
+                          :location (.-location dmt)})
+        focus (r/atom nil)]
+    (fn [] [document-template-form "Update Document" add-data focus])))
+
+(defn document-template1 []
+  (let [add-data (r/atom {})
+        focus (r/atom nil)]
+    (fn [] [document-template-form "New Document" add-data focus])))
+
+;; ===============================================================================================
+;; end of add-update form coding
+;; ===============================================================================================
+
+
 
 (defn get-all-click [event]
   (let [onres (fn [json]
@@ -280,48 +339,14 @@
                                                                       (get-value! :current-page))])))]
     (http-get "http://localhost:8193/documents/all" onres)))
 
-(defn document-template []
-  [:div {:id "add" :class "form-group"}
-   [:div#dn (input "Documentname" :text :documentname )]
-   [:div#tl (input "Title" :text :title)]
-   [:div#empn (input "EmployeeName" :text :employeename)]
-   [:div#dt (input "Date":Date :date)]
-   [:div#loc (input "Location":text :location)]
-   [:input {:type "button" :value "Save"
-            :class "btn btn-primary" :on-click save}]
-   [:input {:type "button" :value "Cancel"
-            :class "btn btn-primary" :on-click cancel}]])
-
-(defn get-update-documents-formdata []
-  {
-   :id (getinputvalue "id")
-   :documentname (getinputvalue "upd_documentname")
-   :title (getinputvalue "upd_title")
-   :employeename (getinputvalue "upd_employeename")
-   :date (getinputvalue "upd_date")
-   :location (getinputvalue "upd_location")})
-
 (defn click-update[id]
   (secretary/dispatch! (str "#/documents/update/" id)))
 
-(defn docupdate [event]
-  (let [onres (fn[data]
-                (secretary/dispatch! "/documents"))]
-    (http-post "http://localhost:8193/documents/update"
-               onres (.serialize (Serializer.) (clj->js (get-update-documents-formdata))))))
-
-(defn document-update-template [id dmt]
-  [:div.form-group {:id "update" :class "form-group"}
-   [:div [:input {:type "hidden" :value id :id "id"}]]
-   [:div (input "Documentname" :text :upd_documentname (.-documentname dmt))]
-   [:div (input "Title" :text :upd_title (.-title dmt))]
-   [:div (input "EmployeeName" :text :upd_employeename (.-employeename dmt))]
-   [:div (input "Date":Date :upd_date  (f/unparse (f/formatter "yyyy-MM-dd")(f/parse (.-date dmt))))]
-   [:div (input "Location":text :upd_location (.-location dmt))]
-   [:input {:type "button" :value "Save"
-            :class "btn btn-primary" :on-click docupdate}]
-   [:input {:type "button" :value "Cancel"
-            :class "btn btn-primary" :on-click cancel}]])
+;; (defn docupdate [event]
+;;   (let [onres (fn[data]
+;;                 (secretary/dispatch! "/documents"))]
+;;     (http-post "http://localhost:8193/documents/update"
+;;                onres (.serialize (Serializer.) (clj->js (get-update-documents-formdata))))))
 
 (defn delete[id]
   (let [onres (fn [json]
@@ -419,10 +444,10 @@
 
 
 (defroute documents-path "/documents/add" []
-  (set-page! [document-template]))
+  (set-page! [document-template1]))
 
 (defroute documents-path1 "/documents/update/:id" [id]
- (set-page! [document-update-template id
+  (set-page! [document-update-template1 id
               (first (filter (fn[obj]
                                (=(.-id obj) (.parseInt js/window id))) (get-value! :documents)))]))
 
