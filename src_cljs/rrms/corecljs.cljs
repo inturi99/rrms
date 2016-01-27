@@ -73,7 +73,7 @@
                         :value (@data-set id)
                         :placeholder placeholder
                         :on-change #(swap! data-set assoc id (-> % .-target .-value))
-                        :on-blur  #(reset! in-focus "yes")
+                        :on-blur  #(reset! in-focus "on")
                         }])
 
 
@@ -101,13 +101,12 @@
                       (secretary/dispatch! "/documents"))))]
       (http-post "http://localhost:8193/user/authenticate"
                  onresp (.serialize (Serializer.) (clj->js @data-set ))))
-    (reset! focus "yes")))
+    (reset! focus "on")))
 
-(defn sign-in-button [data-set focus]
+(defn submit-button [data-set focus]
   [:div.form-group
    [:div.col-md-6
-    [:button.btn.btn-primary {:type "button"
-                              :on-click #(submit-login data-set focus)} "Sign-in"]]])
+    [:button.btn.btn-primary {:on-click #(submit-login data-set focus)} "Submit" ]]])
 
 (defn login []
   (let [my-data (r/atom  {})
@@ -120,7 +119,7 @@
         [:div.panel-body
          [login-input-element :email "Email"  "input-group-addon glyphicon glyphicon-user" "email" my-data "Email" focus]
          [login-input-element :password "Password"  "input-group-addon glyphicon glyphicon-lock" "password" my-data "password" focus]
-         [sign-in-button my-data focus ]]]])))
+         [submit-button my-data focus ]]]])))
 
 ;; ====================================================================================================
 ;; end of login-form
@@ -273,9 +272,8 @@
                           [:div])]]]] )))
 
 
-(defn button [data-set focus fun value]
-  [:button.btn.btn-primary {:type "button"
-                            :on-click fun} value] )
+(defn button [value fun]
+  [:button.btn.btn-primary {:on-click fun} value])
 
 (defn form-save [data-set focus]
   (if (= nil (form-validator @data-set))
@@ -305,8 +303,8 @@
        [form-input-element :employeename "Employee name" "text" data-set focus]
        [form-input-element :date "Date" "date" data-set focus]
        [form-input-element :location "Location" "text" data-set focus]
-       [button data-set focus #(form-save data-set focus) "Save"]
-       [button data-set focus form-cancel "cancel"]]]]]])
+       [button "Save" #(form-save data-set focus) ]
+       [button "cancel" form-cancel ]]]]]])
 
 (defn document-update-template1 [id dmt]
   (let [add-data (r/atom {:documentname (.-documentname dmt)
