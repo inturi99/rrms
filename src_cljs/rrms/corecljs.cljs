@@ -240,7 +240,7 @@
                                            (get-value! :current-page))]))))
 
 ;; ========================================================================================
-;; Add and Update form creation validation
+;; Add-update-form creation validation
 ;; ========================================================================================
 
 (defn form-validator [data-set]
@@ -275,7 +275,7 @@
 (defn button [value fun]
   [:button.btn.btn-primary {:on-click fun} value])
 
-(defn form-save [data-set focus]
+(defn add-form-onclick [data-set focus]
   (if (= nil (form-validator @data-set))
     (let [onres (fn[json]
                   (do
@@ -287,11 +287,19 @@
                  onres  (.serialize (Serializer.) (clj->js @data-set))))
     (reset! focus "on")))
 
+(defn update-form-onclick [data-set focus]
+  (if (= nil (form-validator @data-set))
+    (let [onres (fn[data]
+                  (secretary/dispatch! "/documents"))]
+      (http-post "http://localhost:8193/documents/update"
+                 onres (.serialize (Serializer.) (clj->js @data-set))))
+    (reset! focus "on")))
+
 (defn form-cancel [event]
   (secretary/dispatch! "/documents"))
 
-(defn document-template-form [doc-name data-set focus]
-  [:div#add.container
+(defn document-template [doc-name data-set focus save-function]
+  [:div.container
    [:div.panel.panel-primary.model-dialog
     [:div.panel-heading
      [:h2 doc-name]]
@@ -303,48 +311,31 @@
        [form-input-element :employeename "Employee name" "text" data-set focus]
        [form-input-element :date "Date" "date" data-set focus]
        [form-input-element :location "Location" "text" data-set focus]
-       [button "Save" #(form-save data-set focus) ]
-       [button "cancel" form-cancel ]]]]]])
+       [button "Save" save-function]
+       [button "cancel" form-cancel]]]]]])
 
-(defn document-update-template1 [id dmt]
-  (let [add-data (r/atom {:documentname (.-documentname dmt)
-                          :title (.-title dmt)
-                          :employeename (.-employeename dmt)
-                          :date (f/unparse (f/formatter "yyyy-MM-dd")(f/parse (.-date dmt)))
-                          :location (.-location dmt)})
-        focus (r/atom nil)]
-    (fn [] [document-template-form "Update Document" add-data focus])))
-
-(defn document-template1 []
+(defn document-add-template []
   (let [add-data (r/atom {})
         focus (r/atom nil)]
-    (fn [] [document-template-form "New Document" add-data focus])))
+    (fn [] [document-template "New Document" add-data focus #(add-form-onclick add-data focus)])))
+
+(defn document-update-template [id dmt]
+  (let [update-data (r/atom {:id id
+                             :documentname (.-documentname dmt)
+                             :title (.-title dmt)
+                             :employeename (.-employeename dmt)
+                             :date (f/unparse (f/formatter "yyyy-MM-dd")(f/parse (.-date dmt)))
+                             :location (.-location dmt)})
+        focus (r/atom nil)]
+    (fn [] [document-template "Update Document" update-data focus  #(update-form-onclick update-data focus)])))
 
 ;; ===============================================================================================
-;; end of add-update form coding
+;; end of add-update-form coding
 ;; ===============================================================================================
 
-
-
-(defn get-all-click [event]
-  (let [onres (fn [json]
-                (let [dt (getdata json)]
-                  (set-key-value :documents dt)
-                  (set-key-value :total-pages (get-total-rec-no dt))
-                  (set-key-value :current-page 1)
-                  (set-key-value :page-location
-                                 [render-documents (get-new-page-data (get-value! :documents)
-                                                                      (get-value! :current-page))])))]
-    (http-get "http://localhost:8193/documents/all" onres)))
 
 (defn click-update[id]
   (secretary/dispatch! (str "#/documents/update/" id)))
-
-;; (defn docupdate [event]
-;;   (let [onres (fn[data]
-;;                 (secretary/dispatch! "/documents"))]
-;;     (http-post "http://localhost:8193/documents/update"
-;;                onres (.serialize (Serializer.) (clj->js (get-update-documents-formdata))))))
 
 (defn delete[id]
   (let [onres (fn [json]
@@ -357,6 +348,17 @@
 
 (defn add [event]
   (secretary/dispatch! "/documents/add"))
+
+(defn get-all-click [event]
+  (let [onres (fn [json]
+                (let [dt (getdata json)]
+                  (set-key-value :documents dt)
+                  (set-key-value :total-pages (get-total-rec-no dt))
+                  (set-key-value :current-page 1)
+                  (set-key-value :page-location
+                                 [render-documents (get-new-page-data (get-value! :documents)
+                                                                      (get-value! :current-page))])))]
+    (http-get "http://localhost:8193/documents/all" onres)))
 
 (defn render-documents [documents]
   [:div
@@ -442,10 +444,10 @@
 
 
 (defroute documents-path "/documents/add" []
-  (set-page! [document-template1]))
+  (set-page! [document-add-template]))
 
 (defroute documents-path1 "/documents/update/:id" [id]
-  (set-page! [document-update-template1 id
+  (set-page! [document-update-template id
               (first (filter (fn[obj]
                                (=(.-id obj) (.parseInt js/window id))) (get-value! :documents)))]))
 
