@@ -15,7 +15,8 @@
             [goog.dom :as dom]
             [goog.history.EventType :as EventType]
             [bouncer.core :as b]
-            [bouncer.validators :as v])
+            [bouncer.validators :as v]
+            [accountant.core :as accountant])
   (:import goog.History
            goog.json.Serializer
            goog.date.Date))
@@ -221,7 +222,7 @@
 (declare render-documents)
 
 (defn cancel [event]
-  (secretary/dispatch! "/documents"))
+  (accountant/navigate! "#/documents"))
 
 (defn search [event]
   (let [dt1 (.-value (.getElementById js/document "dt1"))
@@ -280,9 +281,7 @@
     (let [onres (fn[json]
                   (do
                     (set-key-value :documents (getdata json))
-                    (set-key-value :page-location
-                                   [render-documents (get-new-page-data (get-value! :documents)
-                                                                        (get-value! :current-page))])))]
+                    (accountant/navigate! "#/documents")))]
       (http-post "http://localhost:8193/documents/add"
                  onres  (.serialize (Serializer.) (clj->js @data-set))))
     (reset! focus "on")))
@@ -290,13 +289,13 @@
 (defn update-form-onclick [data-set focus]
   (if (= nil (form-validator @data-set))
     (let [onres (fn[data]
-                  (secretary/dispatch! "/documents"))]
+                  (accountant/navigate! "#/documents"))]
       (http-post "http://localhost:8193/documents/update"
                  onres (.serialize (Serializer.) (clj->js @data-set))))
     (reset! focus "on")))
 
 (defn form-cancel [event]
-  (secretary/dispatch! "/documents"))
+  (accountant/navigate! "#/documents"))
 
 (defn document-template [doc-name data-set focus save-function]
   [:div.container
@@ -335,7 +334,7 @@
 
 
 (defn click-update[id]
-  (secretary/dispatch! (str "#/documents/update/" id)))
+  (accountant/navigate! (str "#/documents/update/" id)))
 
 (defn delete[id]
   (let [onres (fn [json]
@@ -347,7 +346,7 @@
     (http-delete (str "http://localhost:8193/documents/delete/" id)  onres)))
 
 (defn add [event]
-  (secretary/dispatch! "/documents/add"))
+  (accountant/navigate! "#/documents/add"))
 
 (defn get-all-click [event]
   (let [onres (fn [json]
@@ -408,10 +407,10 @@
                               ;; [:td [:input {:type "button" :on-click #(click-update(.-id dn))
                               ;;               :class "glyphicon glyphicon-edit" :value "Update"}
                               ;;       ]]
-                              [:td [:a {:href "javascript:;" :on-click  #(click-update(.-id dn))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
+                              [:td [:a {:href "" :on-click  #(click-update(.-id dn))  :class "btn btn-success btn-sm glyphicon glyphicon-edit"}]]
                               ;; [:td [:input {:type "button" :on-click #(delete(.-id dn))
                               ;;               :class "glyphicon glyphicon-remove"  :value "Delete"}]]
-                              [:td  [:a {:href "javascript:;" :on-click #(delete(.-id dn))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]
+                              [:td  [:a {:href "" :on-click #(delete(.-id dn))  :class "btn btn-danger btn-sm glyphicon glyphicon-remove"}] ]
 
                               ])]]
        [:div{:class "col-xs-6 col-centered col-max"} [shared-state 0]]
@@ -467,7 +466,6 @@
                      (secretary/dispatch! (.-token event))))
     (.setEnabled history true)))
 
-(defn nav! [token]
-  (.setToken (History.) token))
+(accountant/configure-navigation!)
 
 (main)
